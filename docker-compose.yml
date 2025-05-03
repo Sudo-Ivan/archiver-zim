@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  archiver:
+    image: ghcr.io/sudo-ivan/archiver-zim:latest
+    container_name: archiver-zim
+    volumes:
+      - ./archive:/app/archive
+      - ./config:/app/config
+    environment:
+      - TZ=UTC
+    restart: unless-stopped
+    # Example command (uncomment and modify as needed):
+    # command: archive "https://www.youtube.com/watch?v=VIDEO_ID" --quality 720p 

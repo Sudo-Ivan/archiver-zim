@@ -1,0 +1,43 @@
+# Global settings
+settings:
+  output_base_dir: "./archives"
+  quality: "best"
+  retry_count: 3
+  retry_delay: 5
+  max_retries: 10
+  max_concurrent_downloads: 3
+  cleanup_after_archive: true
+
+# Archive configurations
+archives:
+  - name: "youtube_channel_1"
+    type: "channel"
+    url: "https://www.youtube.com/c/channel1"
+    update_frequency: "7d"  # 7 days
+    quality: "720p"  # Override global quality
+    description: "Channel 1 Archive"
+    date_limit: 30  # Only keep last 30 days
+
+  - name: "podcast_series_1"
+    type: "podcast"
+    url: "https://example.com/feed.xml"
+    update_frequency: "1d"  # Daily updates
+    description: "Podcast Series 1 Archive"
+    month_limit: 3  # Keep last 3 months
+
+  - name: "playlist_collection"
+    type: "playlist"
+    url: "https://www.youtube.com/playlist?list=PL..."
+    update_frequency: "14d"  # Bi-weekly updates
+    description: "Collection of Playlists"
+    date_limit: 90  # Keep last 90 days
+
+  - name: "mixed_content"
+    type: "mixed"
+    sources:
+      - type: "channel"
+        url: "https://www.youtube.com/c/channel2"
+      - type: "podcast"
+        url: "https://example.com/feed2.xml"
+    update_frequency: "30d"  # Monthly updates
+    description: "Mixed Content Archive" 

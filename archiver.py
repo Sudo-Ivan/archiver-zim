@@ -11,6 +11,7 @@ import random
 import time
 import feedparser
 import requests
+import yaml
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -105,18 +106,33 @@ class Archiver:
         self.download_semaphore = asyncio.Semaphore(max_concurrent_downloads)
         self.download_progress: Dict[str, float] = {}
         self.dry_run = dry_run
+        self.logger = logging.getLogger("archiver")
 
         try:
             result = subprocess.run(["yt-dlp", "--version"], capture_output=True, text=True)
             if result.returncode != 0:
                 raise RuntimeError("yt-dlp is not properly installed")
-            log.info(f"Using yt-dlp version: {result.stdout.strip()}")
+            self.logger.info(f"Using yt-dlp version: {result.stdout.strip()}")
         except Exception as e:
             raise RuntimeError(f"Failed to check yt-dlp installation: {e}")
 
         if not dry_run:
             self.media_dir.mkdir(parents=True, exist_ok=True)
             self.metadata_dir.mkdir(parents=True, exist_ok=True)
+
+    def get_archive_info(self) -> Dict[str, Any]:
+        """
+        Get information about the current archive state.
+
+        Returns:
+            Dict containing archive information
+        """
+        return {
+            "output_dir": str(self.output_dir),
+            "media_count": len(list(self.media_dir.glob("*"))) if self.media_dir.exists() else 0,
+            "metadata_count": len(list(self.metadata_dir.glob("*"))) if self.metadata_dir.exists() else 0,
+            "last_update": datetime.now().isoformat() if self.media_dir.exists() else None
+        }
 
     def _get_random_user_agent(self) -> str:
         """Get a random user agent to avoid detection."""
@@ -136,7 +152,7 @@ class Archiver:
     async def _download_video_async(self, url: str, date: Optional[str] = None) -> bool:
         """Asynchronous video download with retry logic."""
         if self.dry_run:
-            log.info(f"[DRY RUN] Would download video from {url}")
+            self.logger.info(f"[DRY RUN] Would download video from {url}")
             return True
 
         async with self.download_semaphore:
@@ -246,26 +262,26 @@ class Archiver:
                                             progress.update(task, completed=100, description=f"Already downloaded {current_file}")
                                     elif "[info]" in line_str:
                                         if "Downloading playlist:" in line_str:
-                                            log.info(f"[yellow]📋 {line_str}[/yellow]")
+                                            self.logger.info(f"[yellow]📋 {line_str}[/yellow]")
                                         elif "Writing playlist" in line_str:
-                                            log.info(f"[green]✓ {line_str}[/green]")
+                                            self.logger.info(f"[green]✓ {line_str}[/green]")
                                         elif "Downloading" in line_str and "thumbnail" in line_str:
-                                            log.info(f"[blue]🖼️ {line_str}[/blue]")
+                                            self.logger.info(f"[blue]🖼️ {line_str}[/blue]")
                                         elif "Downloading" in line_str and "items of" in line_str:
-                                            log.info(f"[cyan]📥 {line_str}[/cyan]")
+                                            self.logger.info(f"[cyan]📥 {line_str}[/cyan]")
                                     elif not line_str.startswith('[debug]'):
-                                        log.info(f"[cyan]ℹ️ {line_str}[/cyan]")
+                                        self.logger.info(f"[cyan]ℹ️ {line_str}[/cyan]")
 
                                 if stderr_line:
                                     line_str = stderr_line.decode().strip()
                                     error_lines.append(line_str)
                                     if "error" in line_str.lower():
-                                        log.error(f"[red]❌ {line_str}[/red]")
+                                        self.logger.error(f"[red]❌ {line_str}[/red]")
                                     elif not line_str.startswith('[debug]'):
-                                        log.warning(f"[yellow]⚠️ {line_str}[/yellow]")
+                                        self.logger.warning(f"[yellow]⚠️ {line_str}[/yellow]")
 
                             except asyncio.TimeoutError:
-                                log.warning("[yellow]⚠️ Download timeout, retrying...[/yellow]")
+                                self.logger.warning("[yellow]⚠️ Download timeout, retrying...[/yellow]")
                                 process.terminate()
                                 raise TimeoutError("Download operation timed out")
 
@@ -291,18 +307,18 @@ class Archiver:
                         if "playlist" in url.lower():
                             error_msg += "\nPlaylist download failed. Please check if the playlist is public and accessible."
                             error_msg += "\nTry downloading with a lower concurrent download limit or in smaller batches."
-                        log.error(f"[red]❌ Failed to download video after {self.max_retries} attempts: {error_msg}[/red]")
+                        self.logger.error(f"[red]❌ Failed to download video after {self.max_retries} attempts: {error_msg}[/red]")
                         return False
 
                     delay = self.retry_delay * (2 ** retries)
-                    log.warning(f"[yellow]⚠️ Download failed, retrying in {delay} seconds... (Attempt {retries}/{self.max_retries})[/yellow]")
+                    self.logger.warning(f"[yellow]⚠️ Download failed, retrying in {delay} seconds... (Attempt {retries}/{self.max_retries})[/yellow]")
                     await asyncio.sleep(delay)
                     self._add_random_delay()
 
     async def _download_podcast_async(self, url: str, date_limit: Optional[int] = None, month_limit: Optional[int] = None) -> bool:
         """Asynchronous podcast feed download with retry logic."""
         if self.dry_run:
-            log.info(f"[DRY RUN] Would download podcast from {url}")
+            self.logger.info(f"[DRY RUN] Would download podcast from {url}")
             return True
 
         async with self.download_semaphore:
@@ -362,7 +378,7 @@ class Archiver:
                         filtered_entries.append(entry)
 
                     if not filtered_entries:
-                        log.warning(f"No entries found within the specified date range for {url}")
+                        self.logger.warning(f"No entries found within the specified date range for {url}")
                         return True
 
                     feed_id = url.split('/')[-1].split('.')[0]
@@ -405,18 +421,18 @@ class Archiver:
                                                         progress.update(task, completed=downloaded, total=total_size)
 
                                         progress.update(task, advance=1)
-                                        log.info(f"Downloaded: {enclosure_filename}")
+                                        self.logger.info(f"Downloaded: {enclosure_filename}")
 
                     return True
 
                 except Exception as e:
                     retries += 1
                     if retries >= self.max_retries:
-                        log.error(f"Failed to download podcast after {self.max_retries} attempts: {e}")
+                        self.logger.error(f"Failed to download podcast after {self.max_retries} attempts: {e}")
                         return False
 
                     delay = self.retry_delay * (2 ** retries)
-                    log.warning(f"Download failed, retrying in {delay} seconds... (Attempt {retries}/{self.max_retries})")
+                    self.logger.warning(f"Download failed, retrying in {delay} seconds... (Attempt {retries}/{self.max_retries})")
                     await asyncio.sleep(delay)
                     self._add_random_delay()
 
@@ -465,7 +481,7 @@ class Archiver:
                         metadata['playlist_index'] = metadata['playlist'].get('index', 0)
                         metadata['playlist_id'] = metadata['playlist'].get('id', '')
             except Exception as e:
-                log.error(f"Error reading metadata for {media_file.name}: {e}")
+                self.logger.error(f"Error reading metadata for {media_file.name}: {e}")
                 return metadata
 
         subtitle_files = list(self.metadata_dir.glob(f"{media_file.stem}*.vtt")) + \
@@ -473,17 +489,17 @@ class Archiver:
         if subtitle_files:
             metadata['subtitles'] = [str(f.name) for f in subtitle_files]
         else:
-            log.info(f"No subtitles found for {media_file.name}")
+            self.logger.info(f"No subtitles found for {media_file.name}")
 
         if 'chapters' not in metadata:
-            log.info(f"No chapters found for {media_file.name}")
+            self.logger.info(f"No chapters found for {media_file.name}")
 
         return metadata
 
     def create_zim(self, title: str, description: str) -> bool:
         """Create a ZIM file from downloaded media."""
         if self.dry_run:
-            log.info(f"[DRY RUN] Would create ZIM archive with title: {title}")
+            self.logger.info(f"[DRY RUN] Would create ZIM archive with title: {title}")
             return True
 
         try:
@@ -733,7 +749,7 @@ class Archiver:
                                             creator.add_item(subtitle_item)
 
                             except Exception as e:
-                                log.error(f"Error processing media {media_file.name}: {e}")
+                                self.logger.error(f"Error processing media {media_file.name}: {e}")
                                 continue
 
                             progress.update(task, advance=1)
@@ -1174,6 +1190,14 @@ def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str],
     else:
         log.error("Failed to create archive")
         sys.exit(1)
+
+@cli.command()
+@click.option('--config', '-c', default='config.yml', help='Path to configuration file')
+def manage(config: str):
+    """Run the archive manager in continuous mode."""
+    from manager import ArchiveManager
+    manager = ArchiveManager(config)
+    asyncio.run(manager.run())
 
 if __name__ == '__main__':
     cli() 

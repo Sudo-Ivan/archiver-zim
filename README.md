@@ -1,127 +1,108 @@
-# Video & Podcast Archiver ZIM
+# Archiver ZIM
 
-A tool to download videos from YouTube, Rumble, and Odysee, as well as podcasts from RSS feeds, and create ZIM archives for offline viewing.
+A tool for continuously downloading and archiving videos and podcasts into ZIM files.
 
 ## Features
 
-- Download videos from multiple platforms (YouTube, Rumble, Odysee)
-- Download podcasts from RSS feeds
-- Support for channels, playlists, and individual videos
-- Support for podcast episodes with date filtering
-- Quality selection for videos (best, 720p, 480p, etc.)
-- Date filtering for both videos and podcasts
-- Create ZIM archives for offline viewing
-- Rich command-line interface with progress tracking
+- Continuous running mode for automatic updates
+- Support for YouTube channels, playlists, and podcast feeds
+- Configurable update frequencies
+- Mixed content archives
+- Automatic cleanup after archiving
+- Rich progress tracking and logging
 
 ## Installation
 
-1. Clone this repository:
-```bash
-git clone https://github.com/yourusername/video-archiver-zim.git
-cd video-archiver-zim
-```
-
-2. Install dependencies:
+1. Install the required dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Install yt-dlp (if not already installed):
+2. Install yt-dlp (required for video downloads):
 ```bash
-pip install -U yt-dlp
+pip install yt-dlp
 ```
+
+## Configuration
+
+Create a `config.yml` file with your archive configurations. Example:
+
+```yaml
+settings:
+  output_base_dir: "./archives"
+  quality: "best"
+  retry_count: 3
+  retry_delay: 5
+  max_retries: 10
+  max_concurrent_downloads: 3
+  cleanup_after_archive: true
+
+archives:
+  - name: "youtube_channel_1"
+    type: "channel"
+    url: "https://www.youtube.com/c/channel1"
+    update_frequency: "7d"  # 7 days
+    quality: "720p"
+    description: "Channel 1 Archive"
+    date_limit: 30  # Only keep last 30 days
+
+  - name: "podcast_series_1"
+    type: "podcast"
+    url: "https://example.com/feed.xml"
+    update_frequency: "1d"  # Daily updates
+    description: "Podcast Series 1 Archive"
+    month_limit: 3  # Keep last 3 months
+```
+
+### Configuration Options
+
+#### Global Settings
+- `output_base_dir`: Base directory for all archives
+- `quality`: Default video quality
+- `retry_count`: Number of retries for failed downloads
+- `retry_delay`: Base delay between retries in seconds
+- `max_retries`: Maximum number of retries before giving up
+- `max_concurrent_downloads`: Maximum number of concurrent downloads
+- `cleanup_after_archive`: Whether to delete downloaded files after ZIM creation
+
+#### Archive Settings
+- `name`: Unique name for the archive
+- `type`: Type of content ("channel", "playlist", "podcast", or "mixed")
+- `url`: Source URL
+- `update_frequency`: How often to update (e.g., "1d", "7d", "1m", "1y")
+- `quality`: Video quality (overrides global setting)
+- `description`: Archive description
+- `date_limit`: Only keep content from last N days
+- `month_limit`: Only keep content from last N months
 
 ## Usage
 
-### Download Videos
+### Continuous Mode
 
-Download a video or playlist:
+Run the manager in continuous mode:
 ```bash
-python archiver.py archive "https://www.youtube.com/watch?v=VIDEO_ID"
+python archiver.py manage
 ```
 
-Download with specific quality:
+The manager will:
+1. Load the configuration from `config.yml`
+2. Check each archive's update frequency
+3. Download and create ZIM files as needed
+4. Clean up temporary files
+5. Repeat the process
+
+### Single Archive Mode
+
+Create a single archive:
 ```bash
-python archiver.py archive "https://www.youtube.com/watch?v=VIDEO_ID" --quality 720p
+python archiver.py archive URL1 URL2 --output-dir ./archive --quality 720p
 ```
 
-Download videos from a specific date:
-```bash
-python archiver.py archive "https://www.youtube.com/channel/CHANNEL_ID" --date 2024-01-01
-```
+## Logging
 
-### Download Podcasts
-
-Download a podcast feed:
-```bash
-python archiver.py archive "https://example.com/podcast/feed.xml"
-```
-
-Download podcast episodes from the last N days:
-```bash
-python archiver.py archive "https://example.com/podcast/feed.xml" --date-limit 30
-```
-
-Download podcast episodes from the last N months:
-```bash
-python archiver.py archive "https://example.com/podcast/feed.xml" --month-limit 3
-```
-
-### Create ZIM Archive
-
-Create a ZIM archive from downloaded media:
-```bash
-python archiver.py archive "My Media Archive" --description "Collection of videos and podcasts"
-```
-
-Additional options:
-```bash
-python archiver.py archive [URLS] [OPTIONS]
-
-Options:
-  --output-dir, -o TEXT    Output directory [default: ./archive]
-  --quality, -q TEXT       Video quality (e.g., 720p, 480p) [default: best]
-  --date, -d TEXT         Filter by specific date (YYYY-MM-DD)
-  --date-limit, -dl INTEGER  Download only episodes from the last N days
-  --month-limit, -ml INTEGER  Download only episodes from the last N months
-  --title, -t TEXT        Title for the ZIM archive
-  --description, --desc TEXT  ZIM archive description [default: Media archive]
-  --retry-count INTEGER   Number of retries for failed downloads [default: 3]
-  --retry-delay INTEGER   Base delay between retries in seconds [default: 5]
-  --max-retries INTEGER   Maximum number of retries before giving up [default: 10]
-  --skip-download         Skip download phase and create ZIM from existing media
-  --cleanup              Delete downloaded files after ZIM creation
-  --dry-run              Simulate operations without downloading
-```
-
-## Supported Platforms
-
-### Video Platforms
-- YouTube
-- Rumble
-- Odysee
-
-### Podcast Formats
-- RSS feeds
-- Atom feeds
-- JSON feeds
-
-## Features
-
-### Video Features
-- YouTube-style interface
-- Playlist organization
-- Quality selection
-- Date filtering
-- Subtitle support
-- Chapter navigation
-
-### Podcast Features
-- RSS feed support
-- Date-based filtering
-- Episode organization
-- Metadata preservation
-- Audio format support
+Logs are written to both:
+- Console output
+- `archive_manager.log` file
 
 ## License
 
