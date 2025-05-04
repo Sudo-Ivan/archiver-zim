@@ -1,6 +1,6 @@
-title: Video Archiver ZIM
+title: Archiver ZIM
 description: A tool to download videos and podcasts from various platforms and create ZIM archives
-baseurl: "/video-archiver-zim"
+baseurl: "/archiver-zim"
 url: "https://sudo-ivan.github.io"
 
 # Build settings

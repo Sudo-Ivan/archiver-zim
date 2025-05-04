@@ -40,4 +40,4 @@ Visit our [examples](/examples) page to see how to use Video Archiver ZIM for di
 
 ## Contributing
 
-We welcome contributions! Please visit our [GitHub repository](https://github.com/Sudo-Ivan/video-archiver-zim) to get started. 
+We welcome contributions! Please visit our [GitHub repository](https://github.com/Sudo-Ivan/archiver-zim) to get started. 
