@@ -3,7 +3,7 @@ layout: default
 ---
 
 <div class="hero">
-    <h1>Video Archiver ZIM</h1>
+    <h1>Archiver ZIM</h1>
     <p class="lead">A powerful tool to download videos and podcasts from various platforms and create ZIM archives for offline viewing.</p>
 </div>
 
