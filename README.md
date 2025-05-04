@@ -1,6 +1,6 @@
 # Archiver ZIM
 
-A tool for continuously downloading and archiving videos and podcasts into ZIM files.
+A tool for downloading and archiving videos and podcasts into ZIM files.
 
 ## Features
 
