@@ -25,15 +25,6 @@ from libzim.writer import Creator, Item, StringProvider, FileProvider, Hint
 import asyncio
 import shutil
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(message)s",
-    datefmt="[%X]",
-    handlers=[RichHandler(rich_tracebacks=True, markup=True, show_time=False)]
-)
-log = logging.getLogger("archiver")
-console = Console()
-
 class OutputFilter(logging.Filter):
     """Add a custom filter to separate debug messages and command line config."""
     def filter(self, record):
@@ -46,10 +37,79 @@ class OutputFilter(logging.Filter):
             'Redownloading playlist API JSON' in msg,
             'page 1: Downloading API JSON' in msg,
             'Downloading tv client config' in msg,
-            'ios client https formats require a GVS PO Token' in msg
+            'ios client https formats require a GVS PO Token' in msg,
+            'Downloading tv player API JSON' in msg,
+            'Downloading ios player API JSON' in msg,
+            'Extracting URL:' in msg,
+            'File "' in msg and 'line' in msg,
+            'raise ' in msg,
+            '~~~~~~~~~~~~~~~~~~~~~' in msg,
+            'Downloading ' in msg and 'API JSON' in msg,
+            'Writing playlist metadata' in msg,
+            'Writing playlist description' in msg,
+            'Deleting existing file' in msg,
+            'Downloading playlist thumbnail' in msg,
+            'Writing playlist thumbnail' in msg,
+            'Playlist ' in msg and 'Downloading' in msg and 'items of' in msg,
+            'ie_result = self._real_extract' in msg,
+            'self.raise_no_formats' in msg,
+            'raise ExtractorError' in msg,
+            'Downloading webpage' in msg,
+            'Downloading tv client config' in msg,
+            'Downloading tv player API JSON' in msg,
+            'Downloading ios player API JSON' in msg,
+            'Extracting URL:' in msg,
+            'Writing playlist metadata' in msg,
+            'Writing playlist description' in msg,
+            'Deleting existing file' in msg,
+            'Downloading playlist thumbnail' in msg,
+            'Writing playlist thumbnail' in msg,
+            'Playlist ' in msg and 'Downloading' in msg and 'items of' in msg
         ])
 
+class YouTubeAuthError(Exception):
+    """Custom exception for YouTube authentication errors."""
+    pass
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[RichHandler(rich_tracebacks=False, markup=True, show_time=False)]
+)
+log = logging.getLogger("archiver")
+console = Console()
+
+# Add filter to root logger
 logging.getLogger().addFilter(OutputFilter())
+
+def handle_youtube_auth_error(error_msg: str) -> None:
+    """
+    Handle YouTube authentication errors with a user-friendly message.
+
+    Args:
+        error_msg: The error message from yt-dlp
+    """
+    if "Sign in to confirm you're not a bot" in error_msg:
+        log.error("[red]❌ YouTube authentication required. Please use one of these options:[/red]")
+        log.error("[yellow]1. Use --cookies-from-browser option (recommended)[/yellow]")
+        log.error("[yellow]2. Use --cookies option with a cookies file[/yellow]")
+        log.error("[dim]For more details, see:[/dim]")
+        log.error("[blue]https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp[/blue]")
+        raise YouTubeAuthError("YouTube authentication required")
+
+def handle_playlist_error(error_msg: str) -> None:
+    """
+    Handle playlist download errors with a user-friendly message.
+
+    Args:
+        error_msg: The error message from yt-dlp
+    """
+    log.error("[red]❌ Playlist download failed. Please check:[/red]")
+    log.error("[yellow]1. The playlist is public and accessible[/yellow]")
+    log.error("[yellow]2. You have proper authentication if required[/yellow]")
+    log.error("[yellow]3. Try downloading with a lower concurrent download limit[/yellow]")
+    log.error("[yellow]4. Try downloading in smaller batches[/yellow]")
 
 class MediaItem(Item):
     """Custom Item class for media content."""
@@ -97,7 +157,7 @@ class Archiver:
 
     def __init__(self, output_dir: str, quality: str = "best", retry_count: int = 3,
                  retry_delay: int = 5, max_retries: int = 10, max_concurrent_downloads: int = 3,
-                 dry_run: bool = False):
+                 dry_run: bool = False, cookies: Optional[str] = None, cookies_from_browser: Optional[str] = None):
         """
         Initialize the Archiver.
 
@@ -109,6 +169,8 @@ class Archiver:
             max_retries: Maximum number of retries before giving up.
             max_concurrent_downloads: Maximum number of concurrent downloads.
             dry_run: If True, only simulate operations without downloading.
+            cookies: Path to cookies file.
+            cookies_from_browser: Browser to extract cookies from (e.g., "firefox", "chrome").
         """
         self.output_dir = Path(output_dir)
         self.quality = quality
@@ -121,6 +183,8 @@ class Archiver:
         self.download_semaphore = asyncio.Semaphore(max_concurrent_downloads)
         self.download_progress: Dict[str, float] = {}
         self.dry_run = dry_run
+        self.cookies = cookies
+        self.cookies_from_browser = cookies_from_browser
         self.logger = logging.getLogger("archiver")
 
         try:
@@ -217,6 +281,11 @@ class Archiver:
                         "--extractor-args", "youtube:formats=missing_pot"
                     ]
 
+                    if self.cookies:
+                        cmd.extend(["--cookies", self.cookies])
+                    elif self.cookies_from_browser:
+                        cmd.extend(["--cookies-from-browser", self.cookies_from_browser])
+
                     if self.quality != "best":
                         cmd.extend(["-f", f"bestvideo[height<={self.quality[:-1]}]+bestaudio/best[height<={self.quality[:-1]}]"])
 
@@ -306,7 +375,12 @@ class Archiver:
                                     line_str = stderr_line.decode().strip()
                                     error_lines.append(line_str)
                                     if "error" in line_str.lower():
-                                        self.logger.error(f"[red]❌ {line_str}[/red]")
+                                        if "Sign in to confirm you're not a bot" in line_str:
+                                            handle_youtube_auth_error(line_str)
+                                        elif "playlist" in url.lower() and any(x in line_str.lower() for x in ["failed", "error", "not found"]):
+                                            handle_playlist_error(line_str)
+                                        else:
+                                            self.logger.error(f"[red]❌ {line_str}[/red]")
                                     elif not line_str.startswith('[debug]'):
                                         self.logger.warning(f"[yellow]⚠️ {line_str}[/yellow]")
 
@@ -328,6 +402,9 @@ class Archiver:
 
                     return True
 
+                except YouTubeAuthError:
+                    # Don't retry on auth errors
+                    return False
                 except (TimeoutError, subprocess.CalledProcessError, Exception) as e:
                     retries += 1
                     if retries >= self.max_retries:
@@ -335,9 +412,9 @@ class Archiver:
                         if isinstance(e, subprocess.CalledProcessError) and e.output:
                             error_msg = e.output
                         if "playlist" in url.lower():
-                            error_msg += "\nPlaylist download failed. Please check if the playlist is public and accessible."
-                            error_msg += "\nTry downloading with a lower concurrent download limit or in smaller batches."
-                        self.logger.error(f"[red]❌ Failed to download video after {self.max_retries} attempts: {error_msg}[/red]")
+                            handle_playlist_error(error_msg)
+                        else:
+                            self.logger.error(f"[red]❌ Failed to download video after {self.max_retries} attempts: {error_msg}[/red]")
                         return False
 
                     delay = self.retry_delay * (2 ** retries)
@@ -610,23 +687,24 @@ class Archiver:
 
                 creator.set_mainpath("index")
 
-                media_files = list(self.media_dir.glob("*.*"))
+                # Only get media files (video and audio)
+                media_files = [f for f in self.media_dir.glob("*.*") 
+                             if f.suffix.lower() in ['.mp4', '.webm', '.mkv', '.mp3', '.m4a', '.wav', '.ogg']]
                 playlist_groups = {}
                 standalone_videos = []
 
                 for media_file in media_files:
-                    if media_file.suffix not in ['.info.json', '.description', '.jpg', '.webp', '.vtt', '.srt']:
-                        media_metadata = self._get_media_metadata(media_file)
-                        if 'playlist_id' in media_metadata and media_metadata['playlist_id']:
-                            playlist_id = media_metadata['playlist_id']
-                            if playlist_id not in playlist_groups:
-                                playlist_groups[playlist_id] = {
-                                    'title': media_metadata.get('playlist_title', ''),
-                                    'videos': []
-                                }
-                            playlist_groups[playlist_id]['videos'].append((media_file, media_metadata))
-                        else:
-                            standalone_videos.append((media_file, media_metadata))
+                    media_metadata = self._get_media_metadata(media_file)
+                    if 'playlist_id' in media_metadata and media_metadata['playlist_id']:
+                        playlist_id = media_metadata['playlist_id']
+                        if playlist_id not in playlist_groups:
+                            playlist_groups[playlist_id] = {
+                                'title': media_metadata.get('playlist_title', ''),
+                                'videos': []
+                            }
+                        playlist_groups[playlist_id]['videos'].append((media_file, media_metadata))
+                    else:
+                        standalone_videos.append((media_file, media_metadata))
 
                 for playlist in playlist_groups.values():
                     playlist['videos'].sort(key=lambda x: x[1].get('playlist_index', 0))
@@ -1246,12 +1324,16 @@ def cli():
 @click.option('--skip-download', is_flag=True, help='Skip download phase and create ZIM from existing media')
 @click.option('--cleanup', is_flag=True, help='Delete downloaded files after ZIM creation')
 @click.option('--dry-run', is_flag=True, help='Simulate operations without downloading')
+@click.option('--cookies', help='Path to cookies file')
+@click.option('--cookies-from-browser', help='Browser to extract cookies from (e.g., firefox, chrome)')
 def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str], 
            date_limit: Optional[int], month_limit: Optional[int], title: Optional[str], 
            description: str, retry_count: int, retry_delay: int, max_retries: int, 
-           skip_download: bool, cleanup: bool, dry_run: bool):
+           skip_download: bool, cleanup: bool, dry_run: bool, cookies: Optional[str],
+           cookies_from_browser: Optional[str]):
     """Download media and create a ZIM archive."""
-    archiver = Archiver(output_dir, quality, retry_count, retry_delay, max_retries, dry_run=dry_run)
+    archiver = Archiver(output_dir, quality, retry_count, retry_delay, max_retries, 
+                       dry_run=dry_run, cookies=cookies, cookies_from_browser=cookies_from_browser)
 
     if not title:
         title = f"Media_Archive_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
