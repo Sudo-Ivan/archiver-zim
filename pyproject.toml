@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "archiver-zim"
-version = "0.3.0"
-description = "A tool to download videos from various platforms and create ZIM archives"
+version = "0.3.2"
+description = "A tool to download videos and podcasts from various platforms and create ZIM archives"
 authors = ["Sudo-Ivan"]
 readme = "README.md"
 packages = [{include = "archiver"}]
