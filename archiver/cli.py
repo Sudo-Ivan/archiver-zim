@@ -2,7 +2,8 @@
 
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
+from datetime import datetime
 
 import click
 from rich.console import Console
@@ -47,68 +48,71 @@ def cli():
     print_header()
 
 @cli.command()
-@click.argument('url', required=False)
-@click.option('--quality', '-q', default='720p', help='Video quality to download')
-@click.option('--title', '-t', help='Title for the video')
-@click.option('--description', '-d', help='Description for the video')
-@click.option('--output', '-o', type=click.Path(), help='Output directory')
-def archive(url: Optional[str], quality: str, title: Optional[str], description: Optional[str], output: Optional[str]):
-    """Archive a video from the given URL."""
-    try:
-        if not url:
-            url = Prompt.ask("[info]Enter video URL[/info]")
+@click.argument('urls', nargs=-1, required=True)
+@click.option('--output-dir', '-o', default='./archive', help='Output directory')
+@click.option('--quality', '-q', default='best', help='Video quality (e.g., 720p, 480p)')
+@click.option('--date', '-d', help='Filter by specific date (YYYY-MM-DD)')
+@click.option('--date-limit', '-dl', type=int, help='Download only episodes from the last N days')
+@click.option('--month-limit', '-ml', type=int, help='Download only episodes from the last N months')
+@click.option('--title', '-t', help='Title for the ZIM archive')
+@click.option('--description', '--desc', default='Media archive', help='ZIM archive description')
+@click.option('--retry-count', default=3, help='Number of retries for failed downloads')
+@click.option('--retry-delay', default=5, help='Base delay between retries in seconds')
+@click.option('--max-retries', default=10, help='Maximum number of retries before giving up')
+@click.option('--skip-download', is_flag=True, help='Skip download phase and create ZIM from existing media')
+@click.option('--cleanup', is_flag=True, help='Delete downloaded files after ZIM creation')
+@click.option('--dry-run', is_flag=True, help='Simulate operations without downloading')
+@click.option('--cookies', help='Path to cookies file')
+@click.option('--cookies-from-browser', help='Browser to extract cookies from (e.g., firefox, chrome)')
+def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str], 
+           date_limit: Optional[int], month_limit: Optional[int], title: Optional[str], 
+           description: str, retry_count: int, retry_delay: int, max_retries: int, 
+           skip_download: bool, cleanup: bool, dry_run: bool, cookies: Optional[str],
+           cookies_from_browser: Optional[str]):
+    """Download media and create a ZIM archive.
+    
+    Supports both video and podcast content:
+    - Videos: YouTube, Vimeo, etc.
+    - Podcasts: RSS feeds (.xml, .atom, .json, .rss)
+    
+    Examples:
+        # Download a video
+        archiver-zim archive "https://www.youtube.com/watch?v=VIDEO_ID" --quality 720p
+        
+        # Download a podcast feed
+        archiver-zim archive "https://example.com/feed.xml" --date-limit 30
+        
+        # Download multiple items
+        archiver-zim archive "https://youtube.com/..." "https://example.com/feed.xml"
+    """
+    archiver = Archiver(output_dir, quality, retry_count, retry_delay, max_retries, 
+                       dry_run=dry_run, cookies=cookies, cookies_from_browser=cookies_from_browser)
 
-        if not title:
-            title = Prompt.ask("[info]Enter video title[/info]")
+    if not title:
+        title = f"Media_Archive_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-        if not description:
-            description = Prompt.ask("[info]Enter video description[/info]", default="")
+    if not skip_download:
+        success = True
+        results = archiver.download_media(urls, date, date_limit, month_limit)
+        for url, result in results.items():
+            if not result:
+                success = False
+                log.error(f"Failed to download: {url}")
 
-        if not output:
-            default_output = str(Path.cwd() / "archive")
-            output = Prompt.ask(
-                "[info]Enter output directory[/info]",
-                default=default_output
-            )
-            if not Confirm.ask(f"Create directory {output} if it doesn't exist?"):
-                handle_error(ValueError("Output directory is required"))
+        if not success:
+            log.warning("Some downloads failed, but continuing with ZIM creation...")
+    else:
+        log.info("Skipping download phase, creating ZIM from existing media...")
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TaskProgressColumn(),
-            console=console
-        ) as progress:
-            task = progress.add_task("[blue]Archiving video...", total=100)
+    if archiver.create_zim(title, description):
+        log.info("Archive completed successfully")
 
-            archiver = Archiver(output_dir=output, quality=quality)
-            results = archiver.download_media([url])
-
-            if all(results.values()):
-                if archiver.create_zim(title, description):
-                    progress.update(task, completed=100)
-                else:
-                    handle_error(RuntimeError("Failed to create ZIM archive"))
-            else:
-                handle_error(RuntimeError("Failed to download video"))
-
-        # Show results
-        table = Table(title="Archive Results", show_header=True, header_style="bold blue")
-        table.add_column("Property", style="cyan")
-        table.add_column("Value", style="green")
-
-        table.add_row("URL", url)
-        table.add_row("Title", title)
-        table.add_row("Quality", quality)
-        table.add_row("Output Directory", output)
-
-        console.print("\n")
-        console.print(table)
-        console.print("\n[success]✓ Video archived successfully![/success]")
-
-    except Exception as e:
-        handle_error(e)
+        if cleanup and not dry_run:
+            log.info("Cleaning up downloaded files...")
+            archiver.cleanup()
+    else:
+        log.error("Failed to create archive")
+        sys.exit(1)
 
 @cli.command()
 @click.option('--config', '-c', type=click.Path(), help='Configuration file path')
