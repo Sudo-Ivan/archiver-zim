@@ -57,13 +57,13 @@ def archive(url: Optional[str], quality: str, title: Optional[str], description:
     try:
         if not url:
             url = Prompt.ask("[info]Enter video URL[/info]")
-        
+
         if not title:
             title = Prompt.ask("[info]Enter video title[/info]")
-        
+
         if not description:
             description = Prompt.ask("[info]Enter video description[/info]", default="")
-        
+
         if not output:
             default_output = str(Path.cwd() / "archive")
             output = Prompt.ask(
@@ -81,10 +81,10 @@ def archive(url: Optional[str], quality: str, title: Optional[str], description:
             console=console
         ) as progress:
             task = progress.add_task("[blue]Archiving video...", total=100)
-            
+
             archiver = Archiver(output_dir=output, quality=quality)
             results = archiver.download_media([url])
-            
+
             if all(results.values()):
                 if archiver.create_zim(title, description):
                     progress.update(task, completed=100)
@@ -97,12 +97,12 @@ def archive(url: Optional[str], quality: str, title: Optional[str], description:
         table = Table(title="Archive Results", show_header=True, header_style="bold blue")
         table.add_column("Property", style="cyan")
         table.add_column("Value", style="green")
-        
+
         table.add_row("URL", url)
         table.add_row("Title", title)
         table.add_row("Quality", quality)
         table.add_row("Output Directory", output)
-        
+
         console.print("\n")
         console.print(table)
         console.print("\n[success]✓ Video archived successfully![/success]")
