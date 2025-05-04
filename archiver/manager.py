@@ -80,7 +80,8 @@ class ArchiveManager:
 
         return config
 
-    def _parse_frequency(self, frequency: str) -> timedelta:
+    @staticmethod
+    def _parse_frequency(frequency: str) -> timedelta:
         """
         Parse update frequency string into timedelta.
 
@@ -146,7 +147,7 @@ class ArchiveManager:
                     return
 
             self.logger.info(f"[green]Processing archive: {archive_id}[/green]")
-            
+
             # Create output directory
             output_dir = Path(f"archives/{archive_id}")
             output_dir.mkdir(parents=True, exist_ok=True)

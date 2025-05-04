@@ -138,7 +138,8 @@ class MediaItem(Item):
         """Return the title of the media item."""
         return self.title
 
-    def get_mimetype(self):
+    @staticmethod
+    def get_mimetype():
         """Return the MIME type of the media item."""
         return "text/html"
 
@@ -148,7 +149,8 @@ class MediaItem(Item):
             return FileProvider(self.fpath)
         return StringProvider(self.content)
 
-    def get_hints(self):
+    @staticmethod
+    def get_hints():
         """Return hints for the media item."""
         return {Hint.FRONT_ARTICLE: True}
 
