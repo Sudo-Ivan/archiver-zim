@@ -7,8 +7,12 @@ services:
     volumes:
       - ./archive:/app/archive
       - ./config:/app/config
+      - ./cookies:/app/cookies
     environment:
       - TZ=UTC
     restart: unless-stopped
-    # Example command (uncomment and modify as needed):
-    # command: archive "https://www.youtube.com/watch?v=VIDEO_ID" --quality 720p 
+    # Example commands (uncomment and modify as needed):
+    # command: manage  # For continuous mode
+    # command: archive "https://www.youtube.com/watch?v=VIDEO_ID" --quality 720p  # For single archive
+    # command: archive "https://www.youtube.com/watch?v=VIDEO_ID" --cookies /app/cookies/cookies.txt  # With cookies file
+    # command: archive "https://www.youtube.com/watch?v=VIDEO_ID" --cookies-from-browser firefox  # With browser cookies 

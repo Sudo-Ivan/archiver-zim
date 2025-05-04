@@ -18,7 +18,7 @@ COPY archiver /app/archiver/
 
 ENV PYTHONUNBUFFERED=1
 
-RUN mkdir -p /app/archive/media /app/archive/metadata /app/config
+RUN mkdir -p /app/archive/media /app/archive/metadata /app/config /app/cookies
 
 ENTRYPOINT ["python", "-m", "archiver.cli"]
 CMD ["manage"]
