@@ -41,7 +41,7 @@ def print_header() -> None:
     ))
 
 @click.group()
-@click.version_option(version="0.2.3", prog_name="Video Archiver ZIM")
+@click.version_option(version="0.3.0", prog_name="Video Archiver ZIM")
 def cli():
     """Video archiver CLI."""
     print_header()
