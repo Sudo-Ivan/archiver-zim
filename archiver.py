@@ -2,6 +2,9 @@
 
 """Archiver ZIM - A tool to download videos and podcasts from various platforms and create ZIM archives."""
 
+# Copyright (c) 2025 Sudo-Ivan
+# Licensed under the MIT License (see LICENSE file for details)
+
 import sys
 import json
 import logging
@@ -11,7 +14,6 @@ import random
 import time
 import feedparser
 import requests
-import yaml
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, List, Dict, Any

@@ -1,12 +1,14 @@
 """Manager module for handling continuous ZIM archive updates."""
 
+# Copyright (c) 2025 Sudo-Ivan
+# Licensed under the MIT License (see LICENSE file for details)
+
 import yaml
-import time
 import logging
 import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, Any
 from archiver import Archiver
 
 class ArchiveManager:
@@ -111,7 +113,7 @@ class ArchiveManager:
             return
 
         self.logger.info(f"Processing archive: {archive_name}")
-        
+
         output_dir = Path(self.config['settings']['output_base_dir']) / archive_name
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -159,20 +161,20 @@ class ArchiveManager:
     async def run(self):
         """Run the archive manager continuously."""
         self.logger.info("Starting Archive Manager")
-        
+
         while True:
             try:
                 self.config = self._load_config()  # Reload config to pick up changes
-                
+
                 tasks = []
                 for archive_config in self.config['archives']:
                     tasks.append(self._process_archive(archive_config))
-                
+
                 await asyncio.gather(*tasks)
-                
+
                 # Sleep for 1 hour before next check
                 await asyncio.sleep(3600)
-                
+
             except Exception as e:
                 self.logger.error(f"Error in main loop: {e}")
                 await asyncio.sleep(300)  # Sleep for 5 minutes on error
