@@ -5,17 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ page.title }} - {{ site.title }}</title>
     <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+    <link rel="icon" type="image/svg+xml" href="{{ '/assets/images/favicon.svg' | relative_url }}">
     {% seo %}
 </head>
 <body>
     <header>
         <nav>
             <div class="container">
-                <a href="{{ '/' | relative_url }}" class="logo">{{ site.title }}</a>
+                <a href="{{ '/' | relative_url }}" class="logo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    {{ site.title }}
+                </a>
                 <ul>
                     <li><a href="{{ '/docs' | relative_url }}">Documentation</a></li>
                     <li><a href="{{ '/examples' | relative_url }}">Examples</a></li>
-                    <li><a href="https://github.com/Sudo-Ivan/archiver-zim">GitHub</a></li>
+                    <li><a href="https://github.com/Sudo-Ivan/archiver-zim" class="btn">GitHub</a></li>
                 </ul>
             </div>
         </nav>
@@ -23,14 +30,60 @@
 
     <main>
         <div class="container">
-            {{ content }}
+            {% if page.title %}
+            <div class="content-section">
+                <h1>{{ page.title }}</h1>
+                {% if page.description %}
+                <p class="text-light">{{ page.description }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="content-section">
+                {{ content }}
+            </div>
         </div>
     </main>
 
     <footer>
         <div class="container">
-            <p>&copy; {{ site.time | date: '%Y' }} {{ site.title }}. All rights reserved.</p>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Archiver ZIM</h3>
+                    <p>A powerful tool to download videos and podcasts from various platforms and create ZIM archives for offline viewing.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Links</h3>
+                    <ul>
+                        <li><a href="{{ '/docs' | relative_url }}">Documentation</a></li>
+                        <li><a href="{{ '/examples' | relative_url }}">Examples</a></li>
+                        <li><a href="https://github.com/Sudo-Ivan/archiver-zim">GitHub</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>License</h3>
+                    <p>MIT License</p>
+                    <p>&copy; {{ site.time | date: '%Y' }} {{ site.title }}</p>
+                </div>
+            </div>
         </div>
     </footer>
+
+    <script>
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        document.querySelectorAll('nav a').forEach(link => {
+            if (link.getAttribute('href') === window.location.pathname) {
+                link.classList.add('active');
+            }
+        });
+    </script>
 </body>
-</html> 
+</html>
