@@ -23,6 +23,7 @@ from rich.logging import RichHandler
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
 from libzim.writer import Creator, Item, StringProvider, FileProvider, Hint
 import asyncio
+import shutil
 
 logging.basicConfig(
     level=logging.INFO,
@@ -111,7 +112,12 @@ class Archiver:
         self.logger = logging.getLogger("archiver")
 
         try:
-            result = subprocess.run(["yt-dlp", "--version"], capture_output=True, text=True)
+            # Use shutil.which to find the full path to yt-dlp
+            yt_dlp_path = shutil.which("yt-dlp")
+            if not yt_dlp_path:
+                raise RuntimeError("yt-dlp is not installed or not in PATH")
+
+            result = subprocess.run([yt_dlp_path, "--version"], capture_output=True, text=True)
             if result.returncode != 0:
                 raise RuntimeError("yt-dlp is not properly installed")
             self.logger.info(f"Using yt-dlp version: {result.stdout.strip()}")
@@ -136,7 +142,8 @@ class Archiver:
             "last_update": datetime.now().isoformat() if self.media_dir.exists() else None
         }
 
-    def _get_random_user_agent(self) -> str:
+    @staticmethod
+    def _get_random_user_agent() -> str:
         """Get a random user agent to avoid detection."""
         user_agents = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -146,7 +153,8 @@ class Archiver:
         ]
         return random.choice(user_agents)
 
-    def _add_random_delay(self):
+    @staticmethod
+    def _add_random_delay():
         """Add a random delay to avoid rate limiting."""
         delay = random.uniform(1, 3)
         time.sleep(delay)
@@ -407,7 +415,7 @@ class Archiver:
                                     enclosure_path = self.media_dir / enclosure_filename
 
                                     if not enclosure_path.exists():
-                                        response = requests.get(enclosure_url, headers=headers, stream=True)
+                                        response = requests.get(enclosure_url, headers=headers, stream=True, timeout=30)
                                         response.raise_for_status()
 
                                         total_size = int(response.headers.get('content-length', 0))
@@ -455,7 +463,8 @@ class Archiver:
         """Download multiple media items with progress tracking."""
         return asyncio.run(self.download_media_async(urls, date, date_limit, month_limit))
 
-    def verify_download(self, file_path: Path) -> bool:
+    @staticmethod
+    def verify_download(file_path: Path) -> bool:
         """Verify the download of a media file."""
         return file_path.exists() and file_path.is_file()
 
@@ -1137,8 +1146,8 @@ class Archiver:
                     log.error(f"Files still in media directory: {[f.name for f in self.media_dir.glob('*')]}")
                 if self.metadata_dir.exists():
                     log.error(f"Files still in metadata directory: {[f.name for f in self.metadata_dir.glob('*')]}")
-            except Exception:
-                pass
+            except Exception as e:
+                log.error(f"Failed to list remaining files: {e}")
 
 @click.group()
 def cli():
