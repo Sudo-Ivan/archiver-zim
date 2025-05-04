@@ -1,6 +1,7 @@
 # Archiver ZIM
 
 [![Socket Badge](https://socket.dev/api/badge/pypi/package/archiver-zim/0.2.1?artifact_id=tar-gz)](https://socket.dev/pypi/package/archiver-zim/overview/0.2.1/tar-gz)
+[![DeepSource](https://app.deepsource.com/gh/Sudo-Ivan/archiver-zim.svg/?label=active+issues&show_trend=true&token=HQKcgToHNqsWxbY1_gs_Tc7h)](https://app.deepsource.com/gh/Sudo-Ivan/archiver-zim/)
 
 A tool for downloading and archiving videos and podcasts into ZIM files.
 
