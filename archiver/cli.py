@@ -4,13 +4,12 @@ import sys
 from pathlib import Path
 from typing import Optional, List
 from datetime import datetime
+import logging
 
 import click
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.prompt import Confirm, Prompt
-from rich.table import Table
 from rich.theme import Theme
 
 from .archiver import Archiver
@@ -25,6 +24,8 @@ custom_theme = Theme({
 })
 
 console = Console(theme=custom_theme)
+
+log = logging.getLogger(__name__)
 
 def handle_error(error: Exception, exit_code: int = 1) -> None:
     """Handle errors with rich formatting."""
@@ -70,18 +71,18 @@ def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str],
            skip_download: bool, cleanup: bool, dry_run: bool, cookies: Optional[str],
            cookies_from_browser: Optional[str]):
     """Download media and create a ZIM archive.
-    
+
     Supports both video and podcast content:
     - Videos: YouTube, Vimeo, etc.
     - Podcasts: RSS feeds (.xml, .atom, .json, .rss)
-    
+
     Examples:
         # Download a video
         archiver-zim archive "https://www.youtube.com/watch?v=VIDEO_ID" --quality 720p
-        
+
         # Download a podcast feed
         archiver-zim archive "https://example.com/feed.xml" --date-limit 30
-        
+
         # Download multiple items
         archiver-zim archive "https://youtube.com/..." "https://example.com/feed.xml"
     """
