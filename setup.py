@@ -17,6 +17,11 @@ setup(
         "requests>=2.32.3",
         "pyyaml>=6.0.2",
     ],
+    entry_points={
+        "console_scripts": [
+            "archiver-zim=archiver.cli:main",
+        ],
+    },
     author="Sudo-Ivan",
     author_email="",
     description="A tool to download videos from various platforms and create ZIM archives",
