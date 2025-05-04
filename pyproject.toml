@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "video-archiver-zim"
+name = "archiver-zim"
 version = "0.2.1"
 description = "A tool to download videos from various platforms and create ZIM archives"
 authors = ["Sudo-Ivan"]
