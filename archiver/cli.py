@@ -1,4 +1,4 @@
-"""Command line interface for the video archiver."""
+"""Command line interface for the Archiver ZIM."""
 
 import sys
 from pathlib import Path
@@ -36,15 +36,15 @@ def handle_error(error: Exception, exit_code: int = 1) -> None:
 def print_header() -> None:
     """Print the application header."""
     console.print(Panel.fit(
-        "[bold blue]Video Archiver ZIM[/bold blue]\n"
-        "[dim]Download and archive videos from various platforms[/dim]",
+        "[bold blue]Archiver ZIM[/bold blue]\n"
+        "[dim]Download and archive videos and podcasts from various platforms[/dim]",
         border_style="blue"
     ))
 
 @click.group()
-@click.version_option(version="0.3.0", prog_name="Video Archiver ZIM")
+@click.version_option(version="0.3.0", prog_name="Archiver ZIM")
 def cli():
-    """Video archiver CLI."""
+    """Archiver ZIM CLI."""
     print_header()
 
 @cli.command()
