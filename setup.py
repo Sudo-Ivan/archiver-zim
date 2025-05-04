@@ -22,6 +22,13 @@ setup(
             "archiver-zim=archiver.cli:main",
         ],
     },
+    data_files=[
+        ('share/man/man1', [
+            'docs/man/man1/archiver-zim.1',
+            'docs/man/man1/archiver-zim-archive.1',
+            'docs/man/man1/archiver-zim-manage.1',
+        ]),
+    ],
     author="Sudo-Ivan",
     author_email="",
     description="A tool to download videos from various platforms and create ZIM archives",

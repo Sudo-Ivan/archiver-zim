@@ -1,0 +1,46 @@
+.TH ARCHIVER-ZIM 1 "May 2025" "archiver-zim 0.2.1" "User Commands"
+.SH NAME
+archiver-zim \- Download and archive videos from various platforms into ZIM files
+.SH SYNOPSIS
+.B archiver-zim
+[\fIOPTIONS\fR] \fICOMMAND\fR [\fIARGS\fR]...
+.SH DESCRIPTION
+Archiver ZIM is a tool for downloading and archiving videos and podcasts into ZIM files.
+It supports various platforms including YouTube channels, playlists, and podcast feeds.
+.SH COMMANDS
+.TP
+.B archive
+Download and archive a video from a URL
+.TP
+.B manage
+Run in continuous mode with configuration file
+.SH OPTIONS
+.TP
+.BR \-h ", " \-\-help
+Show help message and exit
+.TP
+.BR \-v ", " \-\-version
+Show version and exit
+.SH EXAMPLES
+.TP
+Archive a single video:
+.B archiver-zim archive "https://www.youtube.com/watch?v=VIDEO_ID" \-\-quality 720p
+.TP
+Run in continuous mode:
+.B archiver-zim manage \-\-config config.yml
+.SH FILES
+.TP
+.I ~/.config/archiver-zim/config.yml
+Default configuration file location
+.TP
+.I ./archive/
+Default output directory
+.SH AUTHOR
+Written by Sudo-Ivan
+.SH BUGS
+Report bugs at https://github.com/Sudo-Ivan/archiver-zim/issues
+.SH COPYRIGHT
+Copyright \(co 2025 Sudo-Ivan
+.br
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 

@@ -1,0 +1,35 @@
+.TH ARCHIVER-ZIM-ARCHIVE 1 "May 2025" "archiver-zim 0.2.1" "User Commands"
+.SH NAME
+archiver-zim-archive \- Download and archive a video from a URL
+.SH SYNOPSIS
+.B archiver-zim archive
+[\fIOPTIONS\fR] \fIURL\fR
+.SH DESCRIPTION
+Download a video from the given URL and create a ZIM archive containing the video and its metadata.
+.SH OPTIONS
+.TP
+.BR \-q ", " \-\-quality " " \fIQUALITY\fR
+Video quality to download (default: 720p)
+.TP
+.BR \-t ", " \-\-title " " \fITITLE\fR
+Title for the video
+.TP
+.BR \-d ", " \-\-description " " \fIDESCRIPTION\fR
+Description for the video
+.TP
+.BR \-o ", " \-\-output " " \fIDIRECTORY\fR
+Output directory for the archive
+.TP
+.BR \-h ", " \-\-help
+Show help message and exit
+.SH EXAMPLES
+.TP
+Archive a video with default settings:
+.B archiver-zim archive "https://www.youtube.com/watch?v=VIDEO_ID"
+.TP
+Archive a video with specific quality and title:
+.B archiver-zim archive "https://www.youtube.com/watch?v=VIDEO_ID" \-\-quality 1080p \-\-title "My Video"
+.SH AUTHOR
+Written by Sudo-Ivan
+.SH SEE ALSO
+.BR archiver-zim (1) 

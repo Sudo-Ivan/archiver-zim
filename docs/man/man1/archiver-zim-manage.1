@@ -1,0 +1,33 @@
+.TH ARCHIVER-ZIM-MANAGE 1 "May 2025" "archiver-zim 0.2.1" "User Commands"
+.SH NAME
+archiver-zim-manage \- Run archiver in continuous mode
+.SH SYNOPSIS
+.B archiver-zim manage
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+Run the archiver in continuous mode, monitoring and archiving videos based on the configuration file.
+.SH OPTIONS
+.TP
+.BR \-c ", " \-\-config " " \fIFILE\fR
+Path to configuration file
+.TP
+.BR \-w ", " \-\-watch-dir " " \fIDIRECTORY\fR
+Directory to watch for new videos
+.TP
+.BR \-h ", " \-\-help
+Show help message and exit
+.SH EXAMPLES
+.TP
+Run with default configuration:
+.B archiver-zim manage
+.TP
+Run with specific configuration file:
+.B archiver-zim manage \-\-config /path/to/config.yml
+.SH FILES
+.TP
+.I ~/.config/archiver-zim/config.yml
+Default configuration file location
+.SH AUTHOR
+Written by Sudo-Ivan
+.SH SEE ALSO
+.BR archiver-zim (1) 
