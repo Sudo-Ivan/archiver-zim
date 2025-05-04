@@ -20,6 +20,7 @@ pyyaml = "^6.0.2"
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.8"
 bandit = "^1.8.3"
+interrogate = "^1.7.0"
 
 [tool.poetry.scripts]
 archiver-zim = "archiver.cli:main"
