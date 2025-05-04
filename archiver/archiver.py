@@ -35,9 +35,7 @@ log = logging.getLogger("archiver")
 console = Console()
 
 class OutputFilter(logging.Filter):
-    """
-    Add a custom filter to separate debug messages and command line config.
-    """
+    """Add a custom filter to separate debug messages and command line config."""
     def filter(self, record):
         msg = record.getMessage()
         return not any([
@@ -57,6 +55,15 @@ class MediaItem(Item):
     """Custom Item class for media content."""
 
     def __init__(self, title: str, path: str, content: str = "", fpath: Optional[str] = None):
+        """
+        Initialize a MediaItem.
+
+        Args:
+            title: The title of the media item.
+            path: The path for the media item in the ZIM archive.
+            content: The HTML content of the media item.
+            fpath: The file path to the media item, if it exists.
+        """
         super().__init__()
         self.path = path
         self.title = title
@@ -64,39 +71,44 @@ class MediaItem(Item):
         self.fpath = fpath
 
     def get_path(self):
+        """Return the path of the media item."""
         return self.path
 
     def get_title(self):
+        """Return the title of the media item."""
         return self.title
 
     def get_mimetype(self):
+        """Return the MIME type of the media item."""
         return "text/html"
 
     def get_contentprovider(self):
+        """Return the content provider for the media item."""
         if self.fpath is not None:
             return FileProvider(self.fpath)
         return StringProvider(self.content)
 
     def get_hints(self):
+        """Return hints for the media item."""
         return {Hint.FRONT_ARTICLE: True}
 
 class Archiver:
     """Main class for media archiving functionality."""
 
-    def __init__(self, output_dir: str, quality: str = "best", retry_count: int = 3, 
+    def __init__(self, output_dir: str, quality: str = "best", retry_count: int = 3,
                  retry_delay: int = 5, max_retries: int = 10, max_concurrent_downloads: int = 3,
                  dry_run: bool = False):
         """
         Initialize the Archiver.
 
         Args:
-            output_dir: Directory to store downloaded media and ZIM files
-            quality: Video quality setting (e.g., "best", "720p", "480p")
-            retry_count: Number of retries for failed downloads
-            retry_delay: Base delay between retries in seconds
-            max_retries: Maximum number of retries before giving up
-            max_concurrent_downloads: Maximum number of concurrent downloads
-            dry_run: If True, only simulate operations without downloading
+            output_dir: Directory to store downloaded media and ZIM files.
+            quality: Video quality setting (e.g., "best", "720p", "480p").
+            retry_count: Number of retries for failed downloads.
+            retry_delay: Base delay between retries in seconds.
+            max_retries: Maximum number of retries before giving up.
+            max_concurrent_downloads: Maximum number of concurrent downloads.
+            dry_run: If True, only simulate operations without downloading.
         """
         self.output_dir = Path(output_dir)
         self.quality = quality
@@ -112,7 +124,6 @@ class Archiver:
         self.logger = logging.getLogger("archiver")
 
         try:
-            # Use shutil.which to find the full path to yt-dlp
             yt_dlp_path = shutil.which("yt-dlp")
             if not yt_dlp_path:
                 raise RuntimeError("yt-dlp is not installed or not in PATH")
@@ -133,7 +144,7 @@ class Archiver:
         Get information about the current archive state.
 
         Returns:
-            Dict containing archive information
+            Dict containing archive information.
         """
         return {
             "output_dir": str(self.output_dir),
@@ -160,7 +171,16 @@ class Archiver:
         time.sleep(delay)
 
     async def _download_video_async(self, url: str, date: Optional[str] = None) -> bool:
-        """Asynchronous video download with retry logic."""
+        """
+        Asynchronously download a video with retry logic.
+
+        Args:
+            url: The URL of the video to download.
+            date: An optional date to filter the video by.
+
+        Returns:
+            True if the download was successful, False otherwise.
+        """
         if self.dry_run:
             self.logger.info(f"[DRY RUN] Would download video from {url}")
             return True
@@ -326,7 +346,17 @@ class Archiver:
                     self._add_random_delay()
 
     async def _download_podcast_async(self, url: str, date_limit: Optional[int] = None, month_limit: Optional[int] = None) -> bool:
-        """Asynchronous podcast feed download with retry logic."""
+        """
+        Asynchronously download a podcast feed with retry logic.
+
+        Args:
+            url: The URL of the podcast feed to download.
+            date_limit: Download only episodes from the last N days.
+            month_limit: Download only episodes from the last N months.
+
+        Returns:
+            True if the download was successful, False otherwise.
+        """
         if self.dry_run:
             self.logger.info(f"[DRY RUN] Would download podcast from {url}")
             return True
@@ -446,9 +476,20 @@ class Archiver:
                     await asyncio.sleep(delay)
                     self._add_random_delay()
 
-    async def download_media_async(self, urls: List[str], date: Optional[str] = None, 
+    async def download_media_async(self, urls: List[str], date: Optional[str] = None,
                                  date_limit: Optional[int] = None, month_limit: Optional[int] = None) -> Dict[str, bool]:
-        """Download multiple media items concurrently."""
+        """
+        Download multiple media items concurrently.
+
+        Args:
+            urls: A list of media URLs to download.
+            date: An optional date to filter videos by.
+            date_limit: Download only podcast episodes from the last N days.
+            month_limit: Download only podcast episodes from the last N months.
+
+        Returns:
+            A dictionary mapping each URL to a boolean indicating whether the download was successful.
+        """
         tasks = []
         for url in urls:
             if any(url.endswith(ext) for ext in ['.xml', '.atom', '.json', '.rss']):
@@ -460,16 +501,43 @@ class Archiver:
 
     def download_media(self, urls: List[str], date: Optional[str] = None,
                       date_limit: Optional[int] = None, month_limit: Optional[int] = None) -> Dict[str, bool]:
-        """Download multiple media items with progress tracking."""
+        """
+        Download multiple media items with progress tracking.
+
+        Args:
+            urls: A list of media URLs to download.
+            date: An optional date to filter videos by.
+            date_limit: Download only podcast episodes from the last N days.
+            month_limit: Download only podcast episodes from the last N months.
+
+        Returns:
+            A dictionary mapping each URL to a boolean indicating whether the download was successful.
+        """
         return asyncio.run(self.download_media_async(urls, date, date_limit, month_limit))
 
     @staticmethod
     def verify_download(file_path: Path) -> bool:
-        """Verify the download of a media file."""
+        """
+        Verify the download of a media file.
+
+        Args:
+            file_path: The path to the downloaded file.
+
+        Returns:
+            True if the file exists and is a file, False otherwise.
+        """
         return file_path.exists() and file_path.is_file()
 
     def _get_media_metadata(self, media_file: Path) -> Dict[str, Any]:
-        """Extract media metadata including chapters and subtitles."""
+        """
+        Extract media metadata including chapters and subtitles.
+
+        Args:
+            media_file: The path to the media file.
+
+        Returns:
+            A dictionary containing the media metadata.
+        """
         metadata = {}
         json_file = media_file.with_suffix(".info.json")
 
@@ -508,7 +576,16 @@ class Archiver:
         return metadata
 
     def create_zim(self, title: str, description: str) -> bool:
-        """Create a ZIM file from downloaded media."""
+        """
+        Create a ZIM file from downloaded media.
+
+        Args:
+            title: The title of the ZIM archive.
+            description: A description of the ZIM archive.
+
+        Returns:
+            True if the ZIM archive was created successfully, False otherwise.
+        """
         if self.dry_run:
             self.logger.info(f"[DRY RUN] Would create ZIM archive with title: {title}")
             return True
