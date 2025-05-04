@@ -1,11 +1,11 @@
 ---
 layout: default
-title: Home
 ---
 
-# Welcome to Video Archiver ZIM
-
-A powerful tool to download videos and podcasts from various platforms and create ZIM archives for offline viewing.
+<div class="hero">
+    <h1>Video Archiver ZIM</h1>
+    <p class="lead">A powerful tool to download videos and podcasts from various platforms and create ZIM archives for offline viewing.</p>
+</div>
 
 ## Features
 

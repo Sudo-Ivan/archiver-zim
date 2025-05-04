@@ -109,49 +109,45 @@ nav {
     font-weight: 700;
     color: var(--primary-color);
     text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
 }
 
 .logo:hover {
     color: var(--primary-hover);
 }
 
-nav ul {
-    display: flex;
-    list-style: none;
-    gap: var(--spacing-lg);
-    align-items: center;
-}
-
-nav a {
+.github-link {
     color: var(--text-color);
-    text-decoration: none;
-    font-weight: 500;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--radius-md);
-    transition: all 0.2s ease;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
 }
 
-nav a:hover {
-    color: var(--primary-color);
-    background-color: var(--background-alt);
+.github-link:hover {
+    opacity: 1;
+}
+
+/* Hero Section */
+.hero {
+    text-align: center;
+    padding: var(--spacing-xl) 0;
+    margin-bottom: var(--spacing-xl);
+}
+
+.hero h1 {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.hero .lead {
+    font-size: var(--font-size-xl);
+    color: var(--text-light);
+    max-width: 600px;
+    margin: 0 auto;
 }
 
 /* Main Content */
 main {
     padding: var(--spacing-xl) 0;
     min-height: calc(100vh - 140px);
-}
-
-/* Content Sections */
-.content-section {
-    margin-bottom: var(--spacing-xl);
-    padding: var(--spacing-lg);
-    background-color: var(--background-color);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
 }
 
 /* Code Blocks */
@@ -223,26 +219,12 @@ footer {
         --spacing-lg: 1.5rem;
     }
 
-    nav {
-        flex-direction: column;
-        gap: var(--spacing-md);
-        padding: var(--spacing-md) 0;
+    .hero h1 {
+        font-size: 2.5rem;
     }
 
-    nav ul {
-        flex-direction: column;
-        width: 100%;
-        gap: var(--spacing-sm);
-    }
-
-    nav a {
-        display: block;
-        text-align: center;
-        padding: var(--spacing-sm);
-    }
-
-    .content-section {
-        padding: var(--spacing-md);
+    .hero .lead {
+        font-size: var(--font-size-lg);
     }
 }
 
@@ -255,6 +237,10 @@ footer {
 
     .container {
         padding: 0 var(--spacing-md);
+    }
+
+    .hero h1 {
+        font-size: 2rem;
     }
 
     main {
