@@ -1,0 +1,19 @@
+title: Video Archiver ZIM
+description: A tool to download videos and podcasts from various platforms and create ZIM archives
+baseurl: "/video-archiver-zim"
+url: "https://sudo-ivan.github.io"
+
+# Build settings
+markdown: kramdown
+theme: minima
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+  - .gitignore 
