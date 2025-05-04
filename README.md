@@ -1,6 +1,6 @@
 # Archiver ZIM
 
-[![Socket Badge](https://socket.dev/api/badge/pypi/package/archiver-zim/0.2.3?artifact_id=tar-gz)](https://socket.dev/pypi/package/archiver-zim/overview/0.2.3/tar-gz)
+[![Socket Badge](https://socket.dev/api/badge/pypi/package/archiver-zim/0.3.0?artifact_id=tar-gz)](https://socket.dev/pypi/package/archiver-zim/overview/0.3.0/tar-gz)
 [![DeepSource](https://app.deepsource.com/gh/Sudo-Ivan/archiver-zim.svg/?label=active+issues&show_trend=true&token=HQKcgToHNqsWxbY1_gs_Tc7h)](https://app.deepsource.com/gh/Sudo-Ivan/archiver-zim/)
 
 A tool for downloading and archiving videos and podcasts into ZIM files.
@@ -139,14 +139,24 @@ Options:
 - `--description TEXT`: Archive description
 - `--type TYPE`: Content type (channel, playlist, podcast, mixed)
 - `--update-frequency FREQ`: Update frequency (e.g., 1d, 7d, 1m)
+- `--cookies PATH`: Path to cookies file for authentication
+- `--cookies-from-browser BROWSER`: Browser to extract cookies from (e.g., firefox, chrome)
 
 Example:
 ```bash
+# Basic usage
 archiver-zim archive "https://www.youtube.com/watch?v=VIDEO_ID" \
   --quality 720p \
   --title "My Video Collection" \
-  --description "Personal video archive" \
-  --type mixed
+  --description "Personal video archive"
+
+# Using cookies for authentication
+archiver-zim archive "https://www.youtube.com/watch?v=VIDEO_ID" \
+  --cookies cookies.txt
+
+# Using browser cookies
+archiver-zim archive "https://www.youtube.com/watch?v=VIDEO_ID" \
+  --cookies-from-browser firefox
 ```
 
 ## Configuration
@@ -162,6 +172,8 @@ settings:
   max_retries: 10
   max_concurrent_downloads: 3
   cleanup_after_archive: true
+  cookies: null  # Path to cookies file
+  cookies_from_browser: null  # Browser to extract cookies from (e.g., firefox, chrome)
 
 archives:
   - name: "youtube_channel_1"
@@ -171,6 +183,8 @@ archives:
     quality: "720p"
     description: "Channel 1 Archive"
     date_limit: 30  # Only keep last 30 days
+    cookies: null  # Optional: Override global cookies
+    cookies_from_browser: null  # Optional: Override global browser cookies
 
   - name: "podcast_series_1"
     type: "podcast"
@@ -190,6 +204,8 @@ archives:
 - `max_retries`: Maximum number of retries before giving up
 - `max_concurrent_downloads`: Maximum number of concurrent downloads
 - `cleanup_after_archive`: Whether to delete downloaded files after ZIM creation
+- `cookies`: Path to cookies file
+- `cookies_from_browser`: Browser to extract cookies from (e.g., firefox, chrome)
 
 #### Archive Settings
 - `name`: Unique name for the archive

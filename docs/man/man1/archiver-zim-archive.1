@@ -1,35 +1,63 @@
-.TH ARCHIVER-ZIM-ARCHIVE 1 "May 2025" "archiver-zim 0.2.3" "User Commands"
+.TH ARCHIVER-ZIM-ARCHIVE 1 "March 2024" "Archiver ZIM" "User Commands"
 .SH NAME
-archiver-zim-archive \- Download and archive a video from a URL
+archiver-zim-archive \- Download and archive media content into ZIM files
 .SH SYNOPSIS
-.B archiver-zim archive
-[\fIOPTIONS\fR] \fIURL\fR
+.B archiver-zim-archive
+[\fIOPTIONS\fR] \fIURLS\fR...
 .SH DESCRIPTION
-Download a video from the given URL and create a ZIM archive containing the video and its metadata.
+Download media content from provided URLs and create a ZIM archive.
 .SH OPTIONS
 .TP
-.BR \-q ", " \-\-quality " " \fIQUALITY\fR
-Video quality to download (default: 720p)
+\fB\-o\fR, \fB\-\-output\-dir\fR \fIPATH\fR
+Output directory for archives (default: ./archive)
 .TP
-.BR \-t ", " \-\-title " " \fITITLE\fR
-Title for the video
+\fB\-q\fR, \fB\-\-quality\fR \fIQUALITY\fR
+Video quality (e.g., 720p, 1080p)
 .TP
-.BR \-d ", " \-\-description " " \fIDESCRIPTION\fR
-Description for the video
+\fB\-t\fR, \fB\-\-title\fR \fITEXT\fR
+Archive title
 .TP
-.BR \-o ", " \-\-output " " \fIDIRECTORY\fR
-Output directory for the archive
+\fB\-\-description\fR \fITEXT\fR
+Archive description
 .TP
-.BR \-h ", " \-\-help
-Show help message and exit
+\fB\-\-cookies\fR \fIPATH\fR
+Path to cookies file for authentication
+.TP
+\fB\-\-cookies\-from\-browser\fR \fIBROWSER\fR
+Browser to extract cookies from (e.g., firefox, chrome)
+.TP
+\fB\-\-retry\-count\fR \fIN\fR
+Number of retries for failed downloads (default: 3)
+.TP
+\fB\-\-retry\-delay\fR \fIN\fR
+Base delay between retries in seconds (default: 5)
+.TP
+\fB\-\-max\-retries\fR \fIN\fR
+Maximum number of retries before giving up (default: 10)
+.TP
+\fB\-\-skip\-download\fR
+Skip download phase and create ZIM from existing media
+.TP
+\fB\-\-cleanup\fR
+Delete downloaded files after ZIM creation
+.TP
+\fB\-\-dry\-run\fR
+Simulate operations without downloading
 .SH EXAMPLES
 .TP
-Archive a video with default settings:
-.B archiver-zim archive "https://www.youtube.com/watch?v=VIDEO_ID"
+Download a single video:
+.B archiver-zim-archive
+"https://www.youtube.com/watch?v=VIDEO_ID" \-\-quality 720p
 .TP
-Archive a video with specific quality and title:
-.B archiver-zim archive "https://www.youtube.com/watch?v=VIDEO_ID" \-\-quality 1080p \-\-title "My Video"
-.SH AUTHOR
-Written by Sudo-Ivan
+Download with cookies:
+.B archiver-zim-archive
+"https://www.youtube.com/watch?v=VIDEO_ID" \-\-cookies cookies.txt
+.TP
+Download with browser cookies:
+.B archiver-zim-archive
+"https://www.youtube.com/watch?v=VIDEO_ID" \-\-cookies\-from\-browser firefox
 .SH SEE ALSO
-.BR archiver-zim (1) 
+.BR archiver-zim (1),
+.BR archiver-zim-manage (1)
+.SH AUTHOR
+Written by Sudo-Ivan 
