@@ -10,8 +10,78 @@ A tool for continuously downloading and archiving videos and podcasts into ZIM f
 - Mixed content archives
 - Automatic cleanup after archiving
 - Rich progress tracking and logging
+- Docker support for easy deployment
 
 ## Installation
+
+### Using Docker (Recommended)
+
+1. Pull the Docker image:
+```bash
+docker pull ghcr.io/sudo-ivan/archiver-zim:latest
+```
+
+2. Create required directories:
+```bash
+mkdir -p archive/media archive/metadata config
+```
+
+3. Create a `config.yml` file in the config directory (see Configuration section below)
+
+4. Run using Docker:
+```bash
+# Run in continuous mode
+docker run -d \
+  --name archiver-zim \
+  -v $(pwd)/archive:/app/archive \
+  -v $(pwd)/config:/app/config \
+  -e TZ=UTC \
+  ghcr.io/sudo-ivan/archiver-zim:latest manage
+
+# Run single archive
+docker run --rm \
+  -v $(pwd)/archive:/app/archive \
+  ghcr.io/sudo-ivan/archiver-zim:latest archive \
+  "https://www.youtube.com/watch?v=VIDEO_ID" \
+  --quality 720p \
+  --title "My Video" \
+  --description "My video collection"
+```
+
+### Using Docker Compose
+
+1. Create a `docker-compose.yml` file:
+```yaml
+version: '3.8'
+
+services:
+  archiver:
+    image: ghcr.io/sudo-ivan/archiver-zim:latest
+    container_name: archiver-zim
+    volumes:
+      - ./archive:/app/archive
+      - ./config:/app/config
+    environment:
+      - TZ=UTC
+    restart: unless-stopped
+    # Uncomment and modify the command as needed:
+    # command: manage  # For continuous mode
+    # command: archive "https://www.youtube.com/watch?v=VIDEO_ID" --quality 720p  # For single archive
+```
+
+2. Run using Docker Compose:
+```bash
+# Start in continuous mode
+docker compose up -d
+
+# Run single archive
+docker compose run --rm archiver archive "https://www.youtube.com/watch?v=VIDEO_ID" --quality 720p
+
+# View logs
+docker compose logs -f
+```
+
+### Manual Installation
 
 1. Install the required dependencies:
 ```bash
@@ -81,7 +151,19 @@ archives:
 
 Run the manager in continuous mode:
 ```bash
+# Using Python
 python archiver.py manage
+
+# Using Docker
+docker run -d \
+  --name archiver-zim \
+  -v $(pwd)/archive:/app/archive \
+  -v $(pwd)/config:/app/config \
+  -e TZ=UTC \
+  ghcr.io/sudo-ivan/archiver-zim:latest manage
+
+# Using Docker Compose
+docker compose up -d
 ```
 
 The manager will:
@@ -95,7 +177,20 @@ The manager will:
 
 Create a single archive:
 ```bash
+# Using Python
 python archiver.py archive URL1 URL2 --output-dir ./archive --quality 720p
+
+# Using Docker
+docker run --rm \
+  -v $(pwd)/archive:/app/archive \
+  ghcr.io/sudo-ivan/archiver-zim:latest archive \
+  "https://www.youtube.com/watch?v=VIDEO_ID" \
+  --quality 720p
+
+# Using Docker Compose
+docker compose run --rm archiver archive \
+  "https://www.youtube.com/watch?v=VIDEO_ID" \
+  --quality 720p
 ```
 
 ## Logging
@@ -106,4 +201,4 @@ Logs are written to both:
 
 ## License
 
-MIT License 
+MIT License
