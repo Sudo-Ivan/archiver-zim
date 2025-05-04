@@ -98,10 +98,13 @@ header {
 }
 
 nav {
+    padding: var(--spacing-sm) 0;
+}
+
+.nav-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--spacing-sm) 0;
 }
 
 .logo {
@@ -109,7 +112,6 @@ nav {
     font-weight: 700;
     color: var(--primary-color);
     text-decoration: none;
-    margin-right: auto;
 }
 
 .logo:hover {
@@ -120,7 +122,6 @@ nav {
     color: var(--text-color);
     opacity: 0.8;
     transition: opacity 0.2s ease;
-    margin-left: var(--spacing-lg);
 }
 
 .github-link:hover {
@@ -150,13 +151,15 @@ nav {
 ul {
     list-style: none;
     padding-left: 0;
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
 }
 
 ul li {
     position: relative;
-    padding-left: var(--spacing-lg);
-    margin-bottom: var(--spacing-sm);
+    padding-left: var(--spacing-md);
+    margin-bottom: var(--spacing-xs);
+    display: flex;
+    align-items: center;
 }
 
 ul li::before {
@@ -164,6 +167,7 @@ ul li::before {
     position: absolute;
     left: 0;
     color: var(--primary-color);
+    font-size: 1.2em;
 }
 
 /* Main Content */

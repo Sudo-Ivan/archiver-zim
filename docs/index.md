@@ -46,8 +46,8 @@ mkdir -p archive/media archive/metadata config
 ```
 
 3. Run using Docker:
+
 ```bash
-# Run in continuous mode
 docker run -d \
   --name archiver-zim \
   -v $(pwd)/archive:/app/archive \
@@ -55,7 +55,6 @@ docker run -d \
   -e TZ=UTC \
   ghcr.io/sudo-ivan/archiver-zim:latest manage
 
-# Run single archive
 docker run --rm \
   -v $(pwd)/archive:/app/archive \
   ghcr.io/sudo-ivan/archiver-zim:latest archive \
