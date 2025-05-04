@@ -16,6 +16,12 @@ A tool for downloading and archiving videos and podcasts into ZIM files.
 
 ## Installation
 
+Requires:
+
+- Python 3.10+
+- libzim
+- ffmpeg
+
 ### Using Docker (Recommended)
 
 1. Pull the Docker image:
@@ -93,6 +99,53 @@ pip install -r requirements.txt
 2. Install yt-dlp (required for video downloads):
 ```bash
 pip install yt-dlp
+```
+
+### Using pip
+
+Install directly from PyPI:
+```bash
+pip install archiver-zim
+```
+
+Install using pipx for isolated environment:
+```bash
+pipx install archiver-zim
+```
+
+## CLI
+
+The tool provides a command-line interface with two main commands:
+
+### Manage Command
+```bash
+archiver-zim manage [OPTIONS]
+```
+
+Options:
+- `--config PATH`: Path to config file (default: ./config/config.yml)
+- `--log-level LEVEL`: Set logging level (default: INFO)
+
+### Archive Command
+```bash
+archiver-zim archive [URLS]... [OPTIONS]
+```
+
+Options:
+- `--output-dir PATH`: Output directory for archives
+- `--quality QUALITY`: Video quality (e.g., 720p, 1080p)
+- `--title TEXT`: Archive title
+- `--description TEXT`: Archive description
+- `--type TYPE`: Content type (channel, playlist, podcast, mixed)
+- `--update-frequency FREQ`: Update frequency (e.g., 1d, 7d, 1m)
+
+Example:
+```bash
+archiver-zim archive "https://www.youtube.com/watch?v=VIDEO_ID" \
+  --quality 720p \
+  --title "My Video Collection" \
+  --description "Personal video archive" \
+  --type mixed
 ```
 
 ## Configuration
