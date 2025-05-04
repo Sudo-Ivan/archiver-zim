@@ -9,11 +9,11 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY archiver.py .
+COPY archiver.py manager.py /app/
 
 ENV PYTHONUNBUFFERED=1
 
-RUN mkdir -p /app/archive/media /app/archive/metadata
+RUN mkdir -p /app/archive/media /app/archive/metadata /app/config
 
 ENTRYPOINT ["python", "archiver.py"]
-CMD ["--help"] 
+CMD ["manage"]  # Default to continuous mode 
