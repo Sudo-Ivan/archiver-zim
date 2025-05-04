@@ -7,6 +7,8 @@ settings:
   max_retries: 10
   max_concurrent_downloads: 3
   cleanup_after_archive: true
+  cookies: null  # Path to cookies file
+  cookies_from_browser: null  # Browser to extract cookies from (e.g., firefox, chrome)
 
 # Archive configurations
 archives:
@@ -17,6 +19,8 @@ archives:
     quality: "720p"  # Override global quality
     description: "Channel 1 Archive"
     date_limit: 30  # Only keep last 30 days
+    cookies: null  # Optional: Override global cookies
+    cookies_from_browser: null  # Optional: Override global browser cookies
 
   - name: "podcast_series_1"
     type: "podcast"
