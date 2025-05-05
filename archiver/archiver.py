@@ -518,8 +518,8 @@ class Archiver:
 
         # Process results and map back to URLs
         final_results = {}
-        task_to_url = {task: url for task, url in results_dict.items()}
-        podcast_urls = [u for u in urls if any(u.endswith(ext) for ext in ['.xml', '.atom', '.json', '.rss'])]
+        task_to_url = dict(results_dict.items())
+        podcast_urls = [url for url in urls if url.endswith(('.xml', '.atom', '.json', '.rss'))]
         podcast_idx = 0
 
         for i, result in enumerate(results):
