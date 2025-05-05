@@ -5,6 +5,9 @@
 
 A tool for downloading and archiving videos and podcasts into ZIM files.
 
+> [!WARNING]  
+> Still in heavy development, use at your own risk.
+
 ## Features
 
 - Continuous running mode for automatic updates
