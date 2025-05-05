@@ -1,17 +1,17 @@
 """Command line interface for the Archiver ZIM."""
 
-import sys
-from pathlib import Path
-from typing import Optional, List
-from datetime import datetime
 import logging
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import List, Optional
 
 import click
 from rich.console import Console
+from rich.logging import RichHandler
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.theme import Theme
-from rich.logging import RichHandler
 
 from .archiver import Archiver, OutputFilter
 
@@ -39,9 +39,9 @@ logging.basicConfig(
             show_time=False,
             show_path=False,
             show_level=True,
-            level=logging.INFO
-        )
-    ]
+            level=logging.INFO,
+        ),
+    ],
 )
 
 log = logging.getLogger(__name__)
@@ -51,9 +51,9 @@ logging.getLogger().addFilter(OutputFilter())
 
 def handle_error(error: Exception, exit_code: int = 1) -> None:
     """Handle errors with rich formatting."""
-    console.print(f"\n[error]Error:[/error] {str(error)}")
+    console.print(f"\n[error]Error:[/error] {error!s}")
     if hasattr(error, '__cause__') and error.__cause__:
-        console.print(f"[error]Caused by:[/error] {str(error.__cause__)}")
+        console.print(f"[error]Caused by:[/error] {error.__cause__!s}")
     sys.exit(exit_code)
 
 def print_header() -> None:
@@ -61,7 +61,7 @@ def print_header() -> None:
     console.print(Panel.fit(
         "[bold blue]Archiver ZIM[/bold blue]\n"
         "[dim]Download and archive videos and podcasts from various platforms[/dim]",
-        border_style="blue"
+        border_style="blue",
     ))
 
 @click.group()
@@ -89,10 +89,10 @@ def cli():
 @click.option('--dry-run', is_flag=True, help='Simulate operations without downloading')
 @click.option('--cookies', help='Path to cookies file')
 @click.option('--cookies-from-browser', help='Browser to extract cookies from (e.g., firefox, chrome)')
-def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str], 
+def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str],
            date_limit: Optional[int], month_limit: Optional[int], title: Optional[str],
-           title_filter: Optional[str], description: str, retry_count: int, retry_delay: int, 
-           max_retries: int, max_concurrent_downloads: int, skip_download: bool, cleanup: bool, dry_run: bool, 
+           title_filter: Optional[str], description: str, retry_count: int, retry_delay: int,
+           max_retries: int, max_concurrent_downloads: int, skip_download: bool, cleanup: bool, dry_run: bool,
            cookies: Optional[str], cookies_from_browser: Optional[str]):
     """Download media and create a ZIM archive.
 
@@ -109,8 +109,9 @@ def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str],
 
         # Download multiple items
         archiver-zim archive "https://youtube.com/..." "https://example.com/feed.xml"
+
     """
-    archiver = Archiver(output_dir, quality, retry_count, retry_delay, max_retries, 
+    archiver = Archiver(output_dir, quality, retry_count, retry_delay, max_retries,
                        max_concurrent_downloads=max_concurrent_downloads,
                        dry_run=dry_run, cookies=cookies, cookies_from_browser=cookies_from_browser)
 
@@ -150,14 +151,14 @@ def manage(config: Optional[str], watch_dir: Optional[str]):
             default_config = str(Path.cwd() / "config" / "config.yaml")
             config = Prompt.ask(
                 "[info]Enter configuration file path[/info]",
-                default=default_config
+                default=default_config,
             )
 
         if not watch_dir:
             default_watch = str(Path.cwd() / "watch")
             watch_dir = Prompt.ask(
                 "[info]Enter watch directory[/info]",
-                default=default_watch
+                default=default_watch,
             )
             if not Confirm.ask(f"Create directory {watch_dir} if it doesn't exist?"):
                 handle_error(ValueError("Watch directory is required"))
@@ -178,4 +179,4 @@ def main():
     try:
         cli()
     except Exception as e:
-        handle_error(e) 
+        handle_error(e)

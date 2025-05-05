@@ -5,26 +5,36 @@
 # Copyright (c) 2025 Sudo-Ivan
 # Licensed under the MIT License (see LICENSE file for details)
 
-import sys
+import asyncio
 import json
 import logging
-import subprocess
-import threading
 import random
+import shutil
+import subprocess
+import sys
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
+
 import click
+from libzim.writer import Creator, FileProvider, Hint, Item, StringProvider
 from rich.console import Console
 from rich.logging import RichHandler
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
-from libzim.writer import Creator, Item, StringProvider, FileProvider, Hint
-import asyncio
-import shutil
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeRemainingColumn,
+)
+
 
 class OutputFilter(logging.Filter):
     """Add a custom filter to separate debug messages and command line config."""
+
     def filter(self, record):
         msg = record.getMessage()
         return not any([
@@ -65,13 +75,14 @@ class OutputFilter(logging.Filter):
 
 class YouTubeAuthError(Exception):
     """Custom exception for YouTube authentication errors."""
+
     pass
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(message)s",
     datefmt="[%X]",
-    handlers=[RichHandler(rich_tracebacks=False, markup=True, show_time=False)]
+    handlers=[RichHandler(rich_tracebacks=False, markup=True, show_time=False)],
 )
 log = logging.getLogger("archiver")
 console = Console()
@@ -80,11 +91,11 @@ console = Console()
 logging.getLogger().addFilter(OutputFilter())
 
 def handle_youtube_auth_error(error_msg: str) -> None:
-    """
-    Handle YouTube authentication errors with a user-friendly message.
+    """Handle YouTube authentication errors with a user-friendly message.
 
     Args:
         error_msg: The error message from yt-dlp
+
     """
     log.error("[red]❌ YouTube authentication required. Please use one of these options:[/red]")
     log.error("[yellow]1. Use --cookies-from-browser option (recommended):[/yellow]")
@@ -103,11 +114,11 @@ def handle_youtube_auth_error(error_msg: str) -> None:
     raise YouTubeAuthError("YouTube authentication required")
 
 def handle_playlist_error(error_msg: str) -> None:
-    """
-    Handle playlist download errors with a user-friendly message.
+    """Handle playlist download errors with a user-friendly message.
 
     Args:
         error_msg: The error message from yt-dlp
+
     """
     log.error("[red]❌ Playlist download failed. Please check:[/red]")
     log.error("[yellow]1. The playlist is public and accessible[/yellow]")
@@ -119,14 +130,14 @@ class MediaItem(Item):
     """Custom Item class for media content."""
 
     def __init__(self, title: str, path: str, content: str = "", fpath: Optional[str] = None):
-        """
-        Initialize a MediaItem.
+        """Initialize a MediaItem.
 
         Args:
             title: The title of the media item.
             path: The path for the media item in the ZIM archive.
             content: The HTML content of the media item.
             fpath: The file path to the media item, if it exists.
+
         """
         super().__init__()
         self.path = path
@@ -164,8 +175,7 @@ class Archiver:
     def __init__(self, output_dir: str, quality: str = "best", retry_count: int = 3,
                  retry_delay: int = 5, max_retries: int = 10, max_concurrent_downloads: int = 3,
                  dry_run: bool = False, cookies: Optional[str] = None, cookies_from_browser: Optional[str] = None):
-        """
-        Initialize the Archiver.
+        """Initialize the Archiver.
 
         Args:
             output_dir: Directory to store downloaded media and ZIM files.
@@ -177,6 +187,7 @@ class Archiver:
             dry_run: If True, only simulate operations without downloading.
             cookies: Path to cookies file.
             cookies_from_browser: Browser to extract cookies from (e.g., "firefox", "chrome").
+
         """
         self.output_dir = Path(output_dir)
         self.quality = quality
@@ -198,7 +209,7 @@ class Archiver:
             if not yt_dlp_path:
                 raise RuntimeError("yt-dlp is not installed or not in PATH")
 
-            result = subprocess.run([yt_dlp_path, "--version"], capture_output=True, text=True)
+            result = subprocess.run([yt_dlp_path, "--version"], capture_output=True, text=True, check=False)
             if result.returncode != 0:
                 raise RuntimeError("yt-dlp is not properly installed")
             self.logger.info(f"Using yt-dlp version: {result.stdout.strip()}")
@@ -210,17 +221,17 @@ class Archiver:
             self.metadata_dir.mkdir(parents=True, exist_ok=True)
 
     def get_archive_info(self) -> Dict[str, Any]:
-        """
-        Get information about the current archive state.
+        """Get information about the current archive state.
 
         Returns:
             Dict containing archive information.
+
         """
         return {
             "output_dir": str(self.output_dir),
             "media_count": len(list(self.media_dir.glob("*"))) if self.media_dir.exists() else 0,
             "metadata_count": len(list(self.metadata_dir.glob("*"))) if self.metadata_dir.exists() else 0,
-            "last_update": datetime.now().isoformat() if self.media_dir.exists() else None
+            "last_update": datetime.now().isoformat() if self.media_dir.exists() else None,
         }
 
     @staticmethod
@@ -241,8 +252,7 @@ class Archiver:
         time.sleep(delay)
 
     async def _download_video_async(self, url: str, date: Optional[str] = None, title_filter: Optional[str] = None) -> bool:
-        """
-        Asynchronously download a video with retry logic.
+        """Asynchronously download a video with retry logic.
 
         Args:
             url: The URL of the video or playlist/channel to download.
@@ -251,6 +261,7 @@ class Archiver:
 
         Returns:
             True if the download process completed without fatal errors (even if no files were downloaded due to filters), False otherwise.
+
         """
         if self.dry_run:
             self.logger.info(f"[DRY RUN] Would download from {url}")
@@ -288,7 +299,7 @@ class Archiver:
                         "--yes-playlist",
                         "--break-on-existing",
                         "--concurrent-fragments", "1",
-                        "--extractor-args", "youtube:formats=missing_pot"
+                        "--extractor-args", "youtube:formats=missing_pot",
                     ]
 
                     if self.cookies:
@@ -312,7 +323,7 @@ class Archiver:
                     process = await asyncio.create_subprocess_exec(
                         *cmd,
                         stdout=asyncio.subprocess.PIPE,
-                        stderr=asyncio.subprocess.PIPE
+                        stderr=asyncio.subprocess.PIPE,
                     )
 
                     output_lines = []
@@ -330,7 +341,7 @@ class Archiver:
                         console=console,
                         transient=True,
                         refresh_per_second=10,
-                        expand=True
+                        expand=True,
                     ) as progress:
                         task = progress.add_task("Processing...", total=None)
 
@@ -395,7 +406,7 @@ class Archiver:
                                              "sign in to confirm you're not a bot", "authentication required",
                                              "login required", "private video", "video unavailable",
                                              "this video is private", "this video is unavailable",
-                                             "this playlist is private", "this playlist is unavailable"
+                                             "this playlist is private", "this playlist is unavailable",
                                          ]):
                                              handle_youtube_auth_error(line_str)
                                          elif "playlist" in url.lower() and any(x in line_str.lower() for x in ["failed", "error", "not found"]):
@@ -488,8 +499,7 @@ class Archiver:
     async def download_media_async(self, urls: List[str], date: Optional[str] = None,
                                  date_limit: Optional[int] = None, month_limit: Optional[int] = None,
                                  title_filter: Optional[str] = None) -> Dict[str, bool]:
-        """
-        Download multiple media items concurrently.
+        """Download multiple media items concurrently.
 
         Args:
             urls: A list of media URLs to download.
@@ -500,6 +510,7 @@ class Archiver:
 
         Returns:
             A dictionary mapping each URL to a boolean indicating download process completion status.
+
         """
         tasks = []
         results_dict = {}
@@ -531,11 +542,10 @@ class Archiver:
             original_task = tasks[i]
             if original_task in task_to_url:
                  url = task_to_url[original_task]
-            else: # Fallback for podcast tasks if not mapped
-                 if podcast_idx < len(podcast_urls):
-                     url = podcast_urls[podcast_idx]
-                     is_podcast = True
-                     podcast_idx += 1
+            elif podcast_idx < len(podcast_urls):
+                url = podcast_urls[podcast_idx]
+                is_podcast = True
+                podcast_idx += 1
 
             if isinstance(result, Exception):
                 self.logger.error(f"[red]❌ Unhandled exception during processing {url}: {result}[/red]")
@@ -558,8 +568,7 @@ class Archiver:
     def download_media(self, urls: List[str], date: Optional[str] = None,
                       date_limit: Optional[int] = None, month_limit: Optional[int] = None,
                       title_filter: Optional[str] = None) -> Dict[str, bool]:
-        """
-        Download multiple media items with progress tracking.
+        """Download multiple media items with progress tracking.
 
         Args:
             urls: A list of media URLs to download.
@@ -570,31 +579,32 @@ class Archiver:
 
         Returns:
             A dictionary mapping each URL to a boolean indicating download process completion status.
+
         """
         return asyncio.run(self.download_media_async(urls, date, date_limit, month_limit, title_filter))
 
     @staticmethod
     def verify_download(file_path: Path) -> bool:
-        """
-        Verify the download of a media file.
+        """Verify the download of a media file.
 
         Args:
             file_path: The path to the downloaded file.
 
         Returns:
             True if the file exists and is a file, False otherwise.
+
         """
         return file_path.exists() and file_path.is_file()
 
     def _get_media_metadata(self, media_file: Path) -> Dict[str, Any]:
-        """
-        Extract media metadata including chapters and subtitles.
+        """Extract media metadata including chapters and subtitles.
 
         Args:
             media_file: The path to the media file.
 
         Returns:
             A dictionary containing the media metadata.
+
         """
         metadata = {}
         json_file = media_file.with_suffix(".info.json")
@@ -634,8 +644,7 @@ class Archiver:
         return metadata
 
     def create_zim(self, title: str, description: str) -> bool:
-        """
-        Create a ZIM file from downloaded media.
+        """Create a ZIM file from downloaded media.
 
         Args:
             title: The title of the ZIM archive.
@@ -643,6 +652,7 @@ class Archiver:
 
         Returns:
             True if the ZIM archive was created successfully, False otherwise.
+
         """
         if self.dry_run:
             self.logger.info(f"[DRY RUN] Would create ZIM archive with title: {title}")
@@ -660,7 +670,7 @@ class Archiver:
                     "publisher": "Archiver",
                     "title": title,
                     "language": "eng",
-                    "date": datetime.now().strftime("%Y-%m-%d")
+                    "date": datetime.now().strftime("%Y-%m-%d"),
                 }
 
                 for name, value in metadata.items():
@@ -669,19 +679,19 @@ class Archiver:
                 creator.set_mainpath("index")
 
                 # Only get media files (video and audio)
-                media_files = [f for f in self.media_dir.glob("*.*") 
+                media_files = [f for f in self.media_dir.glob("*.*")
                              if f.suffix.lower() in ['.mp4', '.webm', '.mkv', '.mp3', '.m4a', '.wav', '.ogg']]
                 playlist_groups = {}
                 standalone_videos = []
 
                 for media_file in media_files:
                     media_metadata = self._get_media_metadata(media_file)
-                    if 'playlist_id' in media_metadata and media_metadata['playlist_id']:
+                    if media_metadata.get('playlist_id'):
                         playlist_id = media_metadata['playlist_id']
                         if playlist_id not in playlist_groups:
                             playlist_groups[playlist_id] = {
                                 'title': media_metadata.get('playlist_title', ''),
-                                'videos': []
+                                'videos': [],
                             }
                         playlist_groups[playlist_id]['videos'].append((media_file, media_metadata))
                     else:
@@ -699,7 +709,7 @@ class Archiver:
                     console=console,
                     transient=True,
                     refresh_per_second=10,
-                    expand=True
+                    expand=True,
                 ) as progress:
                     task = progress.add_task("Creating ZIM archive...", total=len(media_files))
 
@@ -813,7 +823,7 @@ class Archiver:
                                         </div>
                                 """
 
-                                if 'playlist_id' in media_metadata and media_metadata['playlist_id']:
+                                if media_metadata.get('playlist_id'):
                                     playlist = playlist_groups[media_metadata['playlist_id']]
                                     html_content += f"""
                                         <div class="playlist-info">
@@ -871,14 +881,14 @@ class Archiver:
                                 media_item = MediaItem(
                                     title=media_metadata.get('title', media_file.stem),
                                     path=f"media/{media_file.stem}",
-                                    content=html_content
+                                    content=html_content,
                                 )
                                 creator.add_item(media_item)
 
                                 media_file_item = MediaItem(
                                     title=media_file.name,
                                     path=f"media/{media_file.name}",
-                                    fpath=str(media_file)
+                                    fpath=str(media_file),
                                 )
                                 media_file_item.get_mimetype = lambda: mime_type
                                 creator.add_item(media_file_item)
@@ -890,7 +900,7 @@ class Archiver:
                                             subtitle_item = MediaItem(
                                                 title=subtitle,
                                                 path=f"media/{subtitle}",
-                                                fpath=str(subtitle_path)
+                                                fpath=str(subtitle_path),
                                             )
                                             subtitle_item.get_mimetype = lambda: "text/vtt" if subtitle.endswith('.vtt') else "text/srt"
                                             creator.add_item(subtitle_item)
@@ -1020,7 +1030,7 @@ class Archiver:
                     playlist_item = MediaItem(
                         title=playlist['title'],
                         path=f"playlist_{playlist_id}",
-                        content=playlist_content
+                        content=playlist_content,
                     )
                     creator.add_item(playlist_item)
 
@@ -1221,7 +1231,7 @@ class Archiver:
                 index_item = MediaItem(
                     title=title,
                     path="index",
-                    content=index_content
+                    content=index_content,
                 )
                 creator.add_item(index_item)
 
@@ -1233,8 +1243,7 @@ class Archiver:
             return False
 
     def cleanup(self) -> None:
-        """
-        Delete all downloaded files and directories after ZIM creation.
+        """Delete all downloaded files and directories after ZIM creation.
 
         This method attempts to remove all files within the media and metadata directories,
         and then removes the directories themselves. It logs each deletion attempt and
@@ -1307,13 +1316,13 @@ def cli():
 @click.option('--dry-run', is_flag=True, help='Simulate operations without downloading')
 @click.option('--cookies', help='Path to cookies file')
 @click.option('--cookies-from-browser', help='Browser to extract cookies from (e.g., firefox, chrome)')
-def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str], 
-           date_limit: Optional[int], month_limit: Optional[int], title: Optional[str], 
-           description: str, retry_count: int, retry_delay: int, max_retries: int, 
+def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str],
+           date_limit: Optional[int], month_limit: Optional[int], title: Optional[str],
+           description: str, retry_count: int, retry_delay: int, max_retries: int,
            skip_download: bool, cleanup: bool, dry_run: bool, cookies: Optional[str],
            cookies_from_browser: Optional[str]):
     """Download media and create a ZIM archive."""
-    archiver = Archiver(output_dir, quality, retry_count, retry_delay, max_retries, 
+    archiver = Archiver(output_dir, quality, retry_count, retry_delay, max_retries,
                        dry_run=dry_run, cookies=cookies, cookies_from_browser=cookies_from_browser)
 
     if not title:
@@ -1351,4 +1360,4 @@ def manage(config: str):
     asyncio.run(manager.run())
 
 if __name__ == '__main__':
-    cli() 
+    cli()

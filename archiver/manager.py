@@ -3,24 +3,27 @@
 # Copyright (c) 2025 Sudo-Ivan
 # Licensed under the MIT License (see LICENSE file for details)
 
-import yaml
-import logging
 import asyncio
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Any
-from archiver import Archiver, OutputFilter
+from typing import Any, Dict
+
+import yaml
 from rich.logging import RichHandler
+
+from archiver import Archiver, OutputFilter
+
 
 class ArchiveManager:
     """Manages continuous running and updates of ZIM archives based on configuration."""
 
     def __init__(self, config_path: str):
-        """
-        Initialize the ArchiveManager.
+        """Initialize the ArchiveManager.
 
         Args:
             config_path: Path to the configuration YAML file
+
         """
         self.config_path = Path(config_path)
         self.config = self._load_config()
@@ -35,23 +38,23 @@ class ArchiveManager:
             format="%(message)s",
             handlers=[
                 RichHandler(rich_tracebacks=False, markup=True, show_time=False),
-                logging.FileHandler("archive_manager.log", mode='a')
-            ]
+                logging.FileHandler("archive_manager.log", mode='a'),
+            ],
         )
         self.logger = logging.getLogger("ArchiveManager")
         self.logger.addFilter(OutputFilter())  # Reuse the same filter from archiver.py
 
     def _load_config(self) -> Dict[str, Any]:
-        """
-        Load configuration from YAML file.
+        """Load configuration from YAML file.
 
         Returns:
             Dict containing configuration settings
+
         """
         if not self.config_path.exists():
             raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
 
-        with open(self.config_path, 'r') as f:
+        with open(self.config_path) as f:
             config = yaml.safe_load(f)
 
         # Validate required fields
@@ -83,14 +86,14 @@ class ArchiveManager:
 
     @staticmethod
     def _parse_frequency(frequency: str) -> timedelta:
-        """
-        Parse update frequency string into timedelta.
+        """Parse update frequency string into timedelta.
 
         Args:
             frequency: String in format "Nd" (days), "Nw" (weeks), "Nm" (months), "Ny" (years)
 
         Returns:
             timedelta object representing the frequency
+
         """
         value = int(frequency[:-1])
         unit = frequency[-1].lower()
@@ -107,21 +110,21 @@ class ArchiveManager:
             raise ValueError(f"Invalid frequency unit: {unit}")
 
     def _should_update(self, archive_name: str) -> bool:
-        """
-        Check if an archive should be updated based on its frequency.
+        """Check if an archive should be updated based on its frequency.
 
         Args:
             archive_name: Name of the archive to check
 
         Returns:
             True if the archive should be updated, False otherwise
+
         """
         if archive_name not in self.last_updates:
             return True
 
         archive_config = next(
             (a for a in self.config['archives'] if a['name'] == archive_name),
-            None
+            None,
         )
         if not archive_config:
             return False
@@ -131,12 +134,12 @@ class ArchiveManager:
         return datetime.now() - last_update >= frequency
 
     async def _process_archive(self, archive_id: str, archive_config: Dict[str, Any]):
-        """
-        Process a single archive configuration.
+        """Process a single archive configuration.
 
         Args:
             archive_id: Unique identifier for the archive
             archive_config: Archive configuration dictionary
+
         """
         try:
             # Check if it's time to update
@@ -162,7 +165,7 @@ class ArchiveManager:
                 max_retries=archive_config['max_retries'],
                 max_concurrent_downloads=archive_config['max_concurrent_downloads'],
                 cookies=archive_config['cookies'],
-                cookies_from_browser=archive_config['cookies_from_browser']
+                cookies_from_browser=archive_config['cookies_from_browser'],
             )
 
             # Process URLs
@@ -170,14 +173,14 @@ class ArchiveManager:
                 try:
                     await archiver.process_url(url, title_filter=archive_config.get('title_filter'))
                 except Exception as e:
-                    self.logger.error(f"[red]Error processing URL {url}: {str(e)}[/red]")
+                    self.logger.error(f"[red]Error processing URL {url}: {e!s}[/red]")
 
             # Update last update time
             self.last_updates[archive_id] = datetime.now()
             self.logger.info(f"[green]Completed archive: {archive_id}[/green]")
 
         except Exception as e:
-            self.logger.error(f"[red]Error processing archive {archive_id}: {str(e)}[/red]")
+            self.logger.error(f"[red]Error processing archive {archive_id}: {e!s}[/red]")
 
     async def run(self):
         """Run the archive manager continuously."""
@@ -206,4 +209,4 @@ def main():
     asyncio.run(manager.run())
 
 if __name__ == "__main__":
-    main() 
+    main()
