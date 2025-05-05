@@ -12,6 +12,8 @@ A tool for downloading and archiving videos and podcasts into ZIM files.
 
 - Continuous running mode for automatic updates
 - Support for YouTube channels, playlists, and podcast feeds
+- Support for filtering by title
+- Downloads videos from websites that are supported by yt-dlp
 - Configurable update frequencies
 - Mixed content archives
 - Automatic cleanup after archiving
