@@ -30,41 +30,39 @@ class OutputFilter(logging.Filter):
     def filter(self, record):
         msg = record.getMessage()
         return not any([
+            # Debug messages
             msg.startswith('[debug]'),
             msg.startswith('Command-line config:'),
             msg.startswith('Encodings:'),
-            'Downloading webpage' in msg,
-            'Redownloading playlist API JSON' in msg,
-            'page 1: Downloading API JSON' in msg,
-            'Downloading tv client config' in msg,
-            'ios client https formats require a GVS PO Token' in msg,
-            'Downloading tv player API JSON' in msg,
-            'Downloading ios player API JSON' in msg,
-            'Extracting URL:' in msg,
+            
+            # File paths and line numbers
             'File "' in msg and 'line' in msg,
             'raise ' in msg,
             '~~~~~~~~~~~~~~~~~~~~~' in msg,
-            'Downloading ' in msg and 'API JSON' in msg,
+            
+            # Internal yt-dlp messages
+            'ie_result = self._real_extract' in msg,
+            'self.raise_no_formats' in msg,
+            'raise ExtractorError' in msg,
+            
+            # Redundant download status
+            'Downloading webpage' in msg,
+            'Downloading tv client config' in msg,
+            'Downloading tv player API JSON' in msg,
+            'Downloading ios player API JSON' in msg,
+            'Extracting URL:' in msg,
             'Writing playlist metadata' in msg,
             'Writing playlist description' in msg,
             'Deleting existing file' in msg,
             'Downloading playlist thumbnail' in msg,
             'Writing playlist thumbnail' in msg,
             'Playlist ' in msg and 'Downloading' in msg and 'items of' in msg,
-            'ie_result = self._real_extract' in msg,
-            'self.raise_no_formats' in msg,
-            'raise ExtractorError' in msg,
-            'Downloading webpage' in msg,
-            'Downloading tv client config' in msg,
-            'Downloading tv player API JSON' in msg,
-            'Downloading ios player API JSON' in msg,
-            'Extracting URL:' in msg,
-            'Writing playlist metadata' in msg,
-            'Writing playlist description' in msg,
-            'Deleting existing file' in msg,
-            'Downloading playlist thumbnail' in msg,
-            'Writing playlist thumbnail' in msg,
-            'Playlist ' in msg and 'Downloading' in msg and 'items of' in msg
+            
+            # Additional debug patterns
+            'Downloading ' in msg and 'API JSON' in msg,
+            'Redownloading playlist API JSON' in msg,
+            'page 1: Downloading API JSON' in msg,
+            'ios client https formats require a GVS PO Token' in msg,
         ])
 
 class YouTubeAuthError(Exception):
@@ -90,13 +88,21 @@ def handle_youtube_auth_error(error_msg: str) -> None:
     Args:
         error_msg: The error message from yt-dlp
     """
-    if "Sign in to confirm you're not a bot" in error_msg:
-        log.error("[red]❌ YouTube authentication required. Please use one of these options:[/red]")
-        log.error("[yellow]1. Use --cookies-from-browser option (recommended)[/yellow]")
-        log.error("[yellow]2. Use --cookies option with a cookies file[/yellow]")
-        log.error("[dim]For more details, see:[/dim]")
-        log.error("[blue]https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp[/blue]")
-        raise YouTubeAuthError("YouTube authentication required")
+    log.error("[red]❌ YouTube authentication required. Please use one of these options:[/red]")
+    log.error("[yellow]1. Use --cookies-from-browser option (recommended):[/yellow]")
+    log.error("   archiver-zim archive URL --cookies-from-browser firefox")
+    log.error("   archiver-zim archive URL --cookies-from-browser chrome")
+    log.error("   archiver-zim archive URL --cookies-from-browser chromium")
+    log.error("   archiver-zim archive URL --cookies-from-browser brave")
+    log.error("   archiver-zim archive URL --cookies-from-browser edge")
+    log.error("   archiver-zim archive URL --cookies-from-browser opera")
+    log.error("   archiver-zim archive URL --cookies-from-browser vivaldi")
+    log.error("\n[yellow]2. Use --cookies option with a cookies file:[/yellow]")
+    log.error("   archiver-zim archive URL --cookies /path/to/cookies.txt")
+    log.error("\n[dim]For more details, see:[/dim]")
+    log.error("[blue]https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp[/blue]")
+    log.error("\n[yellow]Note:[/yellow] Make sure you are logged into YouTube in your browser before using --cookies-from-browser")
+    raise YouTubeAuthError("YouTube authentication required")
 
 def handle_playlist_error(error_msg: str) -> None:
     """
@@ -236,23 +242,26 @@ class Archiver:
         delay = random.uniform(1, 3)
         time.sleep(delay)
 
-    async def _download_video_async(self, url: str, date: Optional[str] = None) -> bool:
+    async def _download_video_async(self, url: str, date: Optional[str] = None, title_filter: Optional[str] = None) -> bool:
         """
         Asynchronously download a video with retry logic.
 
         Args:
-            url: The URL of the video to download.
+            url: The URL of the video or playlist/channel to download.
             date: An optional date to filter the video by.
+            title_filter: Filter videos by title (case-insensitive partial match).
 
         Returns:
-            True if the download was successful, False otherwise.
+            True if the download process completed without fatal errors (even if no files were downloaded due to filters), False otherwise.
         """
         if self.dry_run:
-            self.logger.info(f"[DRY RUN] Would download video from {url}")
+            self.logger.info(f"[DRY RUN] Would download from {url}")
             return True
 
         async with self.download_semaphore:
             retries = 0
+            download_occurred = False # Flag to track if any download started
+
             while retries < self.max_retries:
                 try:
                     cmd = [
@@ -260,7 +269,6 @@ class Archiver:
                         "--write-description",
                         "--write-info-json",
                         "--write-thumbnail",
-                        "--no-playlist-reverse",
                         "--user-agent", self._get_random_user_agent(),
                         "--socket-timeout", "60",
                         "--retries", str(self.retry_count),
@@ -275,11 +283,13 @@ class Archiver:
                         "--write-auto-sub",
                         "--embed-chapters",
                         "--max-filesize", "2G",
-                        "--throttled-rate", "100K",
                         "--retry-sleep", "5",
                         "-o", str(self.media_dir / "%(id)s.%(ext)s"),
                         "--merge-output-format", "mp4",
                         "--verbose",
+                        "--yes-playlist",
+                        "--break-on-existing",
+                        "--concurrent-fragments", "1",
                         "--extractor-args", "youtube:formats=missing_pot"
                     ]
 
@@ -294,18 +304,13 @@ class Archiver:
                     if date:
                         cmd.extend(["--date", date])
 
-                    if "playlist" in url.lower():
-                        cmd.extend([
-                            "--yes-playlist",
-                            "--playlist-reverse",
-                            "--max-downloads", "50",
-                            "--break-on-existing",
-                            "--break-on-reject",
-                            "--concurrent-fragments", "1",
-                        ])
+                    if title_filter:
+                        cmd.extend(["--match-filter", f"title ~= '(?i){title_filter}'"])
 
                     cmd.append(url)
 
+                    # Reset flag for this attempt
+                    download_occurred = False
                     process = await asyncio.create_subprocess_exec(
                         *cmd,
                         stdout=asyncio.subprocess.PIPE,
@@ -316,6 +321,7 @@ class Archiver:
                     error_lines = []
                     current_progress = 0
                     current_file = ""
+                    filter_rejection_logged = False
 
                     with Progress(
                         SpinnerColumn(),
@@ -328,7 +334,7 @@ class Archiver:
                         refresh_per_second=10,
                         expand=True
                     ) as progress:
-                        task = progress.add_task("Downloading...", total=100)
+                        task = progress.add_task("Processing...", total=None)
 
                         while True:
                             try:
@@ -342,221 +348,146 @@ class Archiver:
                                     line_str = stdout_line.decode().strip()
                                     output_lines.append(line_str)
 
-                                    if "[download]" in line_str:
-                                        if "Destination:" in line_str:
-                                            current_file = line_str.split("Destination:")[1].strip()
-                                            progress.update(task, description=f"Downloading {current_file}")
-                                        elif "%" in line_str:
-                                            try:
-                                                if "of" in line_str:
-                                                    parts = line_str.split()
-                                                    percent = float(parts[1].replace('%', ''))
-                                                    current_progress = percent
-                                                else:
-                                                    percent = float(line_str.split('%')[0].split()[-1])
-                                                    current_progress = percent
+                                    if "[download] Destination:" in line_str:
+                                        download_occurred = True # Set flag
+                                        current_file = line_str.split("Destination:")[1].strip()
+                                        progress.update(task, description=f"Downloading {Path(current_file).name}", total=100, completed=0)
+                                    elif "[download]" in line_str and "%" in line_str:
+                                        # Progress update logic... (unchanged)
+                                        try:
+                                            if "of" in line_str:
+                                                parts = line_str.split()
+                                                percent = float(parts[1].replace('%', ''))
+                                                current_progress = percent
+                                            else:
+                                                percent = float(line_str.split('%')[0].split()[-1])
+                                                current_progress = percent
+                                            progress.update(task, completed=current_progress)
+                                        except (ValueError, IndexError):
+                                            pass
+                                    elif "[download]" in line_str and "has already been downloaded" in line_str:
+                                        # Already downloaded logic... (unchanged)
+                                        current_file = line_str.split("download]")[1].split("has")[0].strip()
+                                        progress.update(task, completed=100, description=f"Skipped {Path(current_file).name} (exists)")
+                                        progress.reset(task, description="Processing...")
+                                    # Log info messages sparingly (unchanged)
+                                    elif "[info] Downloading playlist:" in line_str:
+                                         self.logger.info(f"[yellow]📋 {line_str.split('[info]')[1].strip()}[/yellow]")
+                                         progress.update(task, description="Fetching playlist items...")
+                                    elif "[info] Downloading" in line_str and " items " in line_str:
+                                         self.logger.info(f"[cyan]📥 {line_str.split('[info]')[1].strip()}[/cyan]")
+                                    elif "[info] Downloading item " in line_str:
+                                         item_desc = line_str.split("[info]")[1].strip()
+                                         progress.update(task, description=item_desc, total=None, completed=0)
+                                    elif "[yt-dlp]" in line_str and "Downloading" in line_str and "webpage" in line_str:
+                                         progress.update(task, description="Fetching page info...")
 
-                                                progress.update(task, completed=current_progress)
-                                            except (ValueError, IndexError):
-                                                pass
-                                        elif "has already been downloaded" in line_str:
-                                            progress.update(task, completed=100, description=f"Already downloaded {current_file}")
-                                    elif "[info]" in line_str:
-                                        if "Downloading playlist:" in line_str:
-                                            self.logger.info(f"[yellow]📋 {line_str}[/yellow]")
-                                        elif "Writing playlist" in line_str:
-                                            self.logger.info(f"[green]✓ {line_str}[/green]")
-                                        elif "Downloading" in line_str and "thumbnail" in line_str:
-                                            self.logger.info(f"[blue]🖼️ {line_str}[/blue]")
-                                        elif "Downloading" in line_str and "items of" in line_str:
-                                            self.logger.info(f"[cyan]📥 {line_str}[/cyan]")
-                                    elif not line_str.startswith('[debug]'):
-                                        self.logger.info(f"[cyan]ℹ️ {line_str}[/cyan]")
 
                                 if stderr_line:
                                     line_str = stderr_line.decode().strip()
                                     error_lines.append(line_str)
-                                    if "error" in line_str.lower():
-                                        if "Sign in to confirm you're not a bot" in line_str:
-                                            handle_youtube_auth_error(line_str)
-                                        elif "playlist" in url.lower() and any(x in line_str.lower() for x in ["failed", "error", "not found"]):
-                                            handle_playlist_error(line_str)
-                                        else:
-                                            self.logger.error(f"[red]❌ {line_str}[/red]")
+                                    # Log errors and warnings (unchanged)
+                                    if "ERROR:" in line_str:
+                                         # Check for filter rejection message
+                                         if "Did not match filter" in line_str and not filter_rejection_logged:
+                                             self.logger.info(f"[yellow]ℹ️ Item rejected by filter: {line_str.split('ERROR:')[1].strip()}[/yellow]")
+                                             filter_rejection_logged = True # Log only the first one to avoid spam
+                                         # Handle specific errors (unchanged)
+                                         elif any(x in line_str.lower() for x in [
+                                             "sign in to confirm you're not a bot", "authentication required",
+                                             "login required", "private video", "video unavailable",
+                                             "this video is private", "this video is unavailable",
+                                             "this playlist is private", "this playlist is unavailable"
+                                         ]):
+                                             handle_youtube_auth_error(line_str)
+                                         elif "playlist" in url.lower() and any(x in line_str.lower() for x in ["failed", "error", "not found"]):
+                                             handle_playlist_error(line_str)
+                                         # Log general errors
+                                         else:
+                                             self.logger.error(f"[red]❌ {line_str.split('ERROR:')[1].strip()}[/red]")
                                     elif not line_str.startswith('[debug]'):
-                                        self.logger.warning(f"[yellow]⚠️ {line_str}[/yellow]")
+                                         self.logger.warning(f"[yellow]⚠️ {line_str}[/yellow]")
+
 
                             except asyncio.TimeoutError:
-                                self.logger.warning("[yellow]⚠️ Download timeout, retrying...[/yellow]")
-                                process.terminate()
-                                raise TimeoutError("Download operation timed out")
+                                self.logger.warning("[yellow]⚠️ Process timeout, retrying...[/yellow]")
+                                if process and process.returncode is None:
+                                    process.terminate()
+                                    await process.wait()
+                                raise TimeoutError("yt-dlp operation timed out")
+                            except Exception as e:
+                                self.logger.error(f"[red]Error reading process output: {e}[/red]")
+                                if process and process.returncode is None:
+                                    process.terminate()
+                                    await process.wait()
+                                raise
+
 
                     await process.wait()
 
-                    if process.returncode != 0:
-                        error_msg = "\n".join(error_lines) if error_lines else "\n".join(output_lines[-10:])
+                    # Check results after process finishes
+                    if process.returncode == 0:
+                        if not download_occurred:
+                            # yt-dlp succeeded but didn't download anything
+                            if title_filter:
+                                self.logger.info(f"[yellow]ℹ️ yt-dlp finished successfully for {url}, but no videos matched the title filter.[/yellow]")
+                            elif date:
+                                 self.logger.info(f"[yellow]ℹ️ yt-dlp finished successfully for {url}, but no videos matched the date filter.[/yellow]")
+                            else:
+                                self.logger.info(f"[yellow]ℹ️ yt-dlp finished successfully for {url}, but found no videos to download (maybe empty or already downloaded).[/yellow]")
+                        # Consider success even if nothing new downloaded
+                        # Move metadata if any exists from previous runs or info gathering
+                        for file in self.media_dir.glob(f"{Path(url).name}*") if not Path(url).suffix else self.media_dir.glob(f"{Path(url).stem}*"): # Guess pattern
+                             if file.suffix.lower() in ['.description', '.info.json', '.jpg', '.webp', '.vtt', '.srt']:
+                                 try:
+                                     new_path = self.metadata_dir / file.name
+                                     if not new_path.exists():
+                                         file.rename(new_path)
+                                 except Exception as e:
+                                     self.logger.warning(f"Could not move metadata file {file.name}: {e}")
+                        return True # Process completed without fatal error
+
+                    elif process.returncode == 101:
+                        # Exit code 101 specifically means all items were filtered out
+                        self.logger.info(f"[yellow]ℹ️ All items from {url} were filtered out by specified filters (title, date, etc.).[/yellow]")
+                        return True # Not a failure state for the archiver itself
+
+                    else: # Actual error
+                        error_msg = "\\n".join(error_lines) if error_lines else "\\n".join(output_lines[-10:])
+                        self.logger.error(f"[red]yt-dlp exited with code {process.returncode} for {url}[/red]")
                         raise subprocess.CalledProcessError(process.returncode, cmd, error_msg)
 
-                    for file in self.media_dir.glob("*"):
-                        if file.suffix in ['.description', '.info.json', '.jpg', '.webp', '.vtt', '.srt']:
-                            new_path = self.metadata_dir / file.name
-                            file.rename(new_path)
-
-                    return True
 
                 except YouTubeAuthError:
-                    # Don't retry on auth errors
-                    return False
+                    raise # Propagate auth errors immediately
                 except (TimeoutError, subprocess.CalledProcessError, Exception) as e:
                     retries += 1
                     if retries >= self.max_retries:
                         error_msg = str(e)
-                        if isinstance(e, subprocess.CalledProcessError) and e.output:
-                            error_msg = e.output
-                        if "playlist" in url.lower():
-                            handle_playlist_error(error_msg)
-                        else:
-                            self.logger.error(f"[red]❌ Failed to download video after {self.max_retries} attempts: {error_msg}[/red]")
-                        return False
+                        if isinstance(e, subprocess.CalledProcessError): # Check if it has output attribute
+                            error_output = getattr(e, 'output', None) or getattr(e, 'stderr', None)
+                            if error_output:
+                                if isinstance(error_output, bytes):
+                                    try: error_output = error_output.decode()
+                                    except: pass # Keep as bytes if decode fails
+                                error_msg += f"\\nOutput:\\n{error_output}"
+
+                        self.logger.error(f"[red]❌ Failed download/processing for {url} after {self.max_retries} attempts: {error_msg}[/red]")
+                        return False # Indicate failure for this URL
 
                     delay = self.retry_delay * (2 ** retries)
-                    self.logger.warning(f"[yellow]⚠️ Download failed, retrying in {delay} seconds... (Attempt {retries}/{self.max_retries})[/yellow]")
+                    self.logger.warning(f"[yellow]⚠️ Download/processing failed for {url}, retrying in {delay} seconds... (Attempt {retries}/{self.max_retries})[/yellow]")
                     await asyncio.sleep(delay)
                     self._add_random_delay()
 
-    async def _download_podcast_async(self, url: str, date_limit: Optional[int] = None, month_limit: Optional[int] = None) -> bool:
-        """
-        Asynchronously download a podcast feed with retry logic.
+            # If loop finishes after max_retries without success
+            self.logger.error(f"[red]❌ Failed download/processing for {url} after exhausting retries.[/red]")
+            return False
 
-        Args:
-            url: The URL of the podcast feed to download.
-            date_limit: Download only episodes from the last N days.
-            month_limit: Download only episodes from the last N months.
-
-        Returns:
-            True if the download was successful, False otherwise.
-        """
-        if self.dry_run:
-            self.logger.info(f"[DRY RUN] Would download podcast from {url}")
-            return True
-
-        async with self.download_semaphore:
-            retries = 0
-            while retries < self.max_retries:
-                try:
-                    headers = {'User-Agent': self._get_random_user_agent()}
-                    response = requests.get(url, headers=headers, timeout=30)
-                    response.raise_for_status()
-
-                    feed = feedparser.parse(response.content)
-                    if not feed.entries:
-                        raise ValueError("No entries found in feed")
-
-                    now = datetime.now()
-                    if date_limit:
-                        date_cutoff = now - timedelta(days=date_limit)
-                    elif month_limit:
-                        date_cutoff = now - timedelta(days=30 * month_limit)
-                    else:
-                        date_cutoff = None
-
-                    feed_metadata = {
-                        'title': feed.feed.title,
-                        'description': feed.feed.description if hasattr(feed.feed, 'description') else '',
-                        'entries': []
-                    }
-
-                    filtered_entries = []
-                    for entry in feed.entries:
-                        published_date = None
-                        if hasattr(entry, 'published_parsed'):
-                            published_date = datetime(*entry.published_parsed[:6])
-                        elif hasattr(entry, 'updated_parsed'):
-                            published_date = datetime(*entry.updated_parsed[:6])
-
-                        if date_cutoff and published_date and published_date < date_cutoff:
-                            continue
-
-                        entry_data = {
-                            'title': entry.title,
-                            'description': entry.description if hasattr(entry, 'description') else '',
-                            'published': entry.published if hasattr(entry, 'published') else '',
-                            'published_date': published_date.isoformat() if published_date else None,
-                            'enclosures': []
-                        }
-
-                        for enclosure in entry.get('enclosures', []):
-                            if 'url' in enclosure and 'type' in enclosure:
-                                entry_data['enclosures'].append({
-                                    'url': enclosure['url'],
-                                    'type': enclosure['type'],
-                                    'length': enclosure.get('length', '')
-                                })
-
-                        feed_metadata['entries'].append(entry_data)
-                        filtered_entries.append(entry)
-
-                    if not filtered_entries:
-                        self.logger.warning(f"No entries found within the specified date range for {url}")
-                        return True
-
-                    feed_id = url.split('/')[-1].split('.')[0]
-                    metadata_file = self.metadata_dir / f"{feed_id}.json"
-                    with open(metadata_file, 'w') as f:
-                        json.dump(feed_metadata, f, indent=2)
-
-                    total_enclosures = sum(len(entry['enclosures']) for entry in feed_metadata['entries'])
-                    with Progress(
-                        SpinnerColumn(),
-                        TextColumn("[progress.description]{task.description}"),
-                        BarColumn(),
-                        TaskProgressColumn(),
-                        TimeRemainingColumn(),
-                        console=console
-                    ) as progress:
-                        task = progress.add_task("Downloading podcast episodes...", total=total_enclosures)
-
-                        for entry in feed_metadata['entries']:
-                            for enclosure in entry['enclosures']:
-                                if enclosure['type'].startswith(('audio/', 'video/')):
-                                    enclosure_url = enclosure['url']
-                                    enclosure_filename = enclosure_url.split('/')[-1]
-                                    enclosure_path = self.media_dir / enclosure_filename
-
-                                    if not enclosure_path.exists():
-                                        response = requests.get(enclosure_url, headers=headers, stream=True, timeout=30)
-                                        response.raise_for_status()
-
-                                        total_size = int(response.headers.get('content-length', 0))
-                                        block_size = 8192
-                                        downloaded = 0
-
-                                        with open(enclosure_path, 'wb') as f:
-                                            for chunk in response.iter_content(chunk_size=block_size):
-                                                if chunk:
-                                                    f.write(chunk)
-                                                    downloaded += len(chunk)
-                                                    if total_size > 0:
-                                                        progress.update(task, completed=downloaded, total=total_size)
-
-                                        progress.update(task, advance=1)
-                                        self.logger.info(f"Downloaded: {enclosure_filename}")
-
-                    return True
-
-                except Exception as e:
-                    retries += 1
-                    if retries >= self.max_retries:
-                        self.logger.error(f"Failed to download podcast after {self.max_retries} attempts: {e}")
-                        return False
-
-                    delay = self.retry_delay * (2 ** retries)
-                    self.logger.warning(f"Download failed, retrying in {delay} seconds... (Attempt {retries}/{self.max_retries})")
-                    await asyncio.sleep(delay)
-                    self._add_random_delay()
 
     async def download_media_async(self, urls: List[str], date: Optional[str] = None,
-                                 date_limit: Optional[int] = None, month_limit: Optional[int] = None) -> Dict[str, bool]:
+                                 date_limit: Optional[int] = None, month_limit: Optional[int] = None,
+                                 title_filter: Optional[str] = None) -> Dict[str, bool]:
         """
         Download multiple media items concurrently.
 
@@ -565,21 +496,69 @@ class Archiver:
             date: An optional date to filter videos by.
             date_limit: Download only podcast episodes from the last N days.
             month_limit: Download only podcast episodes from the last N months.
+            title_filter: Filter videos by title (case-insensitive partial match).
 
         Returns:
-            A dictionary mapping each URL to a boolean indicating whether the download was successful.
+            A dictionary mapping each URL to a boolean indicating download process completion status.
         """
         tasks = []
+        results_dict = {}
         for url in urls:
             if any(url.endswith(ext) for ext in ['.xml', '.atom', '.json', '.rss']):
                 tasks.append(self._download_podcast_async(url, date_limit, month_limit))
+                # Associate task with URL for result mapping later if needed, though podcasts are simpler
             else:
-                tasks.append(self._download_video_async(url, date))
-        results = await asyncio.gather(*tasks)
-        return dict(zip(urls, results))
+                # Create task and store it with its URL
+                task = asyncio.create_task(self._download_video_async(url, date, title_filter))
+                tasks.append(task)
+                results_dict[task] = url # Map task back to URL
+
+        # Gather results
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results and map back to URLs
+        final_results = {}
+        task_to_url = {task: url for task, url in results_dict.items()}
+        podcast_urls = [u for u in urls if any(u.endswith(ext) for ext in ['.xml', '.atom', '.json', '.rss'])]
+        podcast_idx = 0
+        video_idx = 0
+
+        for i, result in enumerate(results):
+            url = ""
+            is_podcast = False
+            # Find the URL associated with this result/exception
+            # This mapping is a bit complex because gather mixes results and exceptions
+            # Attempt to map based on task identity if possible
+            original_task = tasks[i]
+            if original_task in task_to_url:
+                 url = task_to_url[original_task]
+            else: # Fallback for podcast tasks if not mapped
+                 if podcast_idx < len(podcast_urls):
+                     url = podcast_urls[podcast_idx]
+                     is_podcast = True
+                     podcast_idx += 1
+
+            if isinstance(result, Exception):
+                self.logger.error(f"[red]❌ Unhandled exception during processing {url}: {result}[/red]")
+                final_results[url] = False
+            elif is_podcast:
+                # Assume podcast result corresponds to the next podcast URL
+                 final_results[url] = result # result is the boolean status
+            else:
+                 # Video result
+                 final_results[url] = result # result is the boolean status
+
+
+        # Ensure all original URLs have a result (important if some task failed very early)
+        for url in urls:
+            if url not in final_results:
+                 final_results[url] = False # Assume failure if no result mapped
+
+        return final_results
 
     def download_media(self, urls: List[str], date: Optional[str] = None,
-                      date_limit: Optional[int] = None, month_limit: Optional[int] = None) -> Dict[str, bool]:
+                      date_limit: Optional[int] = None, month_limit: Optional[int] = None,
+                      title_filter: Optional[str] = None) -> Dict[str, bool]:
         """
         Download multiple media items with progress tracking.
 
@@ -588,11 +567,12 @@ class Archiver:
             date: An optional date to filter videos by.
             date_limit: Download only podcast episodes from the last N days.
             month_limit: Download only podcast episodes from the last N months.
+            title_filter: Filter videos by title (case-insensitive partial match).
 
         Returns:
-            A dictionary mapping each URL to a boolean indicating whether the download was successful.
+            A dictionary mapping each URL to a boolean indicating download process completion status.
         """
-        return asyncio.run(self.download_media_async(urls, date, date_limit, month_limit))
+        return asyncio.run(self.download_media_async(urls, date, date_limit, month_limit, title_filter))
 
     @staticmethod
     def verify_download(file_path: Path) -> bool:

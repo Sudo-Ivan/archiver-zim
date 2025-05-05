@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.theme import Theme
+from rich.logging import RichHandler
 
 from .archiver import Archiver
 
@@ -25,7 +26,29 @@ custom_theme = Theme({
 
 console = Console(theme=custom_theme)
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[
+        RichHandler(
+            console=console,
+            rich_tracebacks=False,
+            markup=True,
+            show_time=False,
+            show_path=False,
+            show_level=True,
+            level=logging.INFO
+        )
+    ]
+)
+
 log = logging.getLogger(__name__)
+
+# Add filter to root logger
+from .archiver import OutputFilter
+logging.getLogger().addFilter(OutputFilter())
 
 def handle_error(error: Exception, exit_code: int = 1) -> None:
     """Handle errors with rich formatting."""
@@ -56,6 +79,7 @@ def cli():
 @click.option('--date-limit', '-dl', type=int, help='Download only episodes from the last N days')
 @click.option('--month-limit', '-ml', type=int, help='Download only episodes from the last N months')
 @click.option('--title', '-t', help='Title for the ZIM archive')
+@click.option('--title-filter', help='Filter videos by title (e.g., "The Wire")')
 @click.option('--description', '--desc', default='Media archive', help='ZIM archive description')
 @click.option('--retry-count', default=3, help='Number of retries for failed downloads')
 @click.option('--retry-delay', default=5, help='Base delay between retries in seconds')
@@ -67,14 +91,14 @@ def cli():
 @click.option('--cookies', help='Path to cookies file')
 @click.option('--cookies-from-browser', help='Browser to extract cookies from (e.g., firefox, chrome)')
 def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str], 
-           date_limit: Optional[int], month_limit: Optional[int], title: Optional[str], 
-           description: str, retry_count: int, retry_delay: int, max_retries: int,
-           max_concurrent_downloads: int, skip_download: bool, cleanup: bool, dry_run: bool, 
+           date_limit: Optional[int], month_limit: Optional[int], title: Optional[str],
+           title_filter: Optional[str], description: str, retry_count: int, retry_delay: int, 
+           max_retries: int, max_concurrent_downloads: int, skip_download: bool, cleanup: bool, dry_run: bool, 
            cookies: Optional[str], cookies_from_browser: Optional[str]):
     """Download media and create a ZIM archive.
 
     Supports both video and podcast content:
-    - Videos: YouTube, Vimeo, etc.
+    - Videos: YouTube, Vimeo, Rumble, etc.
     - Podcasts: RSS feeds (.xml, .atom, .json, .rss)
 
     Examples:
@@ -96,7 +120,7 @@ def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str],
 
     if not skip_download:
         success = True
-        results = archiver.download_media(urls, date, date_limit, month_limit)
+        results = archiver.download_media(urls, date, date_limit, month_limit, title_filter)
         for url, result in results.items():
             if not result:
                 success = False

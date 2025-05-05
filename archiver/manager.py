@@ -77,6 +77,7 @@ class ArchiveManager:
             archive_config.setdefault('cleanup', False)
             archive_config.setdefault('cookies', None)
             archive_config.setdefault('cookies_from_browser', None)
+            archive_config.setdefault('title_filter', None)
 
         return config
 
@@ -167,7 +168,7 @@ class ArchiveManager:
             # Process URLs
             for url in archive_config['urls']:
                 try:
-                    await archiver.process_url(url)
+                    await archiver.process_url(url, title_filter=archive_config.get('title_filter'))
                 except Exception as e:
                     self.logger.error(f"[red]Error processing URL {url}: {str(e)}[/red]")
 
