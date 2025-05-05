@@ -65,7 +65,7 @@ def print_header() -> None:
     ))
 
 @click.group()
-@click.version_option(version="0.3.5", prog_name="Archiver ZIM")
+@click.version_option(version="0.3.6", prog_name="Archiver ZIM")
 def cli():
     """Archiver ZIM CLI."""
     print_header()
