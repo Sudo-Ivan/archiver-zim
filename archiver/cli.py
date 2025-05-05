@@ -60,6 +60,7 @@ def cli():
 @click.option('--retry-count', default=3, help='Number of retries for failed downloads')
 @click.option('--retry-delay', default=5, help='Base delay between retries in seconds')
 @click.option('--max-retries', default=10, help='Maximum number of retries before giving up')
+@click.option('--max-concurrent-downloads', default=3, help='Maximum number of concurrent downloads')
 @click.option('--skip-download', is_flag=True, help='Skip download phase and create ZIM from existing media')
 @click.option('--cleanup', is_flag=True, help='Delete downloaded files after ZIM creation')
 @click.option('--dry-run', is_flag=True, help='Simulate operations without downloading')
@@ -67,9 +68,9 @@ def cli():
 @click.option('--cookies-from-browser', help='Browser to extract cookies from (e.g., firefox, chrome)')
 def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str], 
            date_limit: Optional[int], month_limit: Optional[int], title: Optional[str], 
-           description: str, retry_count: int, retry_delay: int, max_retries: int, 
-           skip_download: bool, cleanup: bool, dry_run: bool, cookies: Optional[str],
-           cookies_from_browser: Optional[str]):
+           description: str, retry_count: int, retry_delay: int, max_retries: int,
+           max_concurrent_downloads: int, skip_download: bool, cleanup: bool, dry_run: bool, 
+           cookies: Optional[str], cookies_from_browser: Optional[str]):
     """Download media and create a ZIM archive.
 
     Supports both video and podcast content:
@@ -87,6 +88,7 @@ def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str],
         archiver-zim archive "https://youtube.com/..." "https://example.com/feed.xml"
     """
     archiver = Archiver(output_dir, quality, retry_count, retry_delay, max_retries, 
+                       max_concurrent_downloads=max_concurrent_downloads,
                        dry_run=dry_run, cookies=cookies, cookies_from_browser=cookies_from_browser)
 
     if not title:
