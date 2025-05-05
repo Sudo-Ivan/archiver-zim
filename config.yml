@@ -1,47 +1,72 @@
-# Global settings
+# Global settings (optional)
+# These settings apply to all archives unless overridden
 settings:
-  output_base_dir: "./archives"
-  quality: "best"
-  retry_count: 3
-  retry_delay: 5
-  max_retries: 10
-  max_concurrent_downloads: 3
-  cleanup_after_archive: true
-  cookies: null  # Path to cookies file
-  cookies_from_browser: null  # Browser to extract cookies from (e.g., firefox, chrome)
+  output_base_dir: "./archives"  # Base directory where all archives will be stored
+  quality: "best"                # Default video quality (e.g., 720p, 480p, best)
+  retry_count: 3                 # Default number of retries for failed downloads
+  retry_delay: 5                 # Default base delay (seconds) between retries
+  max_retries: 10                # Default maximum number of retries before giving up
+  max_concurrent_downloads: 3    # Default maximum concurrent downloads per archive job
+  cleanup_after_archive: false   # Default: keep downloaded files after ZIM creation
+  cookies: null                  # Default: Path to a netscape cookies file (optional)
+  cookies_from_browser: null     # Default: Browser to extract cookies from (e.g., firefox, chrome) (optional)
 
 # Archive configurations
+# Define one or more archives to manage
 archives:
-  - name: "youtube_channel_1"
-    type: "channel"
-    url: "https://www.youtube.com/c/channel1"
-    update_frequency: "7d"  # 7 days
-    quality: "720p"  # Override global quality
-    description: "Channel 1 Archive"
-    date_limit: 30  # Only keep last 30 days
-    cookies: null  # Optional: Override global cookies
-    cookies_from_browser: null  # Optional: Override global browser cookies
+  - name: "youtube_tech_reviews"        # Unique name for this archive job
+    type: "channel"                     # Type of source (channel, playlist, podcast, mixed)
+    url: "https://www.youtube.com/c/TechReviewsChannel" # URL of the channel
+    update_frequency: "7d"              # How often to check for updates (e.g., 1d, 7d, 1m)
+    quality: "1080p"                    # Override global quality for this archive
+    description: "Archive of Tech Reviews" # Description for the ZIM file
+    date_limit: 60                      # Optional: Download only videos from the last 60 days
+    title_filter: "Review"              # Optional: Only download videos with "Review" in the title (case-insensitive)
+    cleanup_after_archive: true         # Override global cleanup setting
 
-  - name: "podcast_series_1"
+  - name: "security_podcast"
     type: "podcast"
-    url: "https://example.com/feed.xml"
-    update_frequency: "1d"  # Daily updates
-    description: "Podcast Series 1 Archive"
-    month_limit: 3  # Keep last 3 months
+    url: "https://feeds.example.com/securitynow.xml"
+    update_frequency: "1d"              # Check daily
+    description: "Security Now Podcast Archive"
+    month_limit: 6                      # Optional: Download only episodes from the last 6 months
 
-  - name: "playlist_collection"
+  - name: "project_tutorials"
     type: "playlist"
-    url: "https://www.youtube.com/playlist?list=PL..."
-    update_frequency: "14d"  # Bi-weekly updates
-    description: "Collection of Playlists"
-    date_limit: 90  # Keep last 90 days
+    url: "https://www.youtube.com/playlist?list=PLXYZ..."
+    update_frequency: "14d"             # Check every 2 weeks
+    description: "Project Tutorial Playlist"
+    # No date_limit or title_filter means download all items in the playlist
 
-  - name: "mixed_content"
-    type: "mixed"
+  - name: "rumble_wire_updates"
+    type: "channel" # Could also be 'mixed' if combining with other sources
+    url: "https://rumble.com/c/S2Underground"
+    update_frequency: "1d"
+    description: "The Wire Updates from Rumble"
+    title_filter: "The Wire"            # Download only videos with "The Wire" in the title
+    quality: "best"
+
+  - name: "mixed_content_archive"
+    type: "mixed"                       # Use 'mixed' for multiple source types/URLs
     sources:
-      - type: "channel"
-        url: "https://www.youtube.com/c/channel2"
+      - type: "channel"                 # Can specify type per source
+        url: "https://www.youtube.com/c/AnotherChannel"
+        title_filter: "News Update"     # Filter applies only to this source
       - type: "podcast"
-        url: "https://example.com/feed2.xml"
-    update_frequency: "30d"  # Monthly updates
-    description: "Mixed Content Archive" 
+        url: "https://feeds.example.com/anotherpodcast.rss"
+        date_limit: 30                  # Filter applies only to this source
+    update_frequency: "30d"             # Check monthly
+    description: "Combined News and Podcast Archive"
+    # Global settings for quality, retries etc. apply unless overridden here (not shown)
+
+# Notes on Frequency:
+# 'd' = days, 'w' = weeks, 'm' = months (approx 30 days), 'h' = hours
+# Example: "12h", "3d", "2w", "1m"
+# The manager checks roughly every hour, but only processes an archive
+# if its update_frequency interval has passed since the last successful run.
+
+# Notes on Filters:
+# - date_limit: Applies to videos based on upload date, podcasts based on published date.
+# - month_limit: Similar to date_limit but for months.
+# - title_filter: Applies to videos (from channels/playlists/direct URLs). Case-insensitive partial match.
+# - If multiple date/month filters are present, the most restrictive usually applies (behavior depends on underlying tools). 

@@ -12,9 +12,7 @@ import subprocess
 import threading
 import random
 import time
-import feedparser
-import requests
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import click
@@ -34,17 +32,17 @@ class OutputFilter(logging.Filter):
             msg.startswith('[debug]'),
             msg.startswith('Command-line config:'),
             msg.startswith('Encodings:'),
-            
+
             # File paths and line numbers
             'File "' in msg and 'line' in msg,
             'raise ' in msg,
             '~~~~~~~~~~~~~~~~~~~~~' in msg,
-            
+
             # Internal yt-dlp messages
             'ie_result = self._real_extract' in msg,
             'self.raise_no_formats' in msg,
             'raise ExtractorError' in msg,
-            
+
             # Redundant download status
             'Downloading webpage' in msg,
             'Downloading tv client config' in msg,
@@ -57,7 +55,7 @@ class OutputFilter(logging.Filter):
             'Downloading playlist thumbnail' in msg,
             'Writing playlist thumbnail' in msg,
             'Playlist ' in msg and 'Downloading' in msg and 'items of' in msg,
-            
+
             # Additional debug patterns
             'Downloading ' in msg and 'API JSON' in msg,
             'Redownloading playlist API JSON' in msg,
@@ -468,9 +466,11 @@ class Archiver:
                             error_output = getattr(e, 'output', None) or getattr(e, 'stderr', None)
                             if error_output:
                                 if isinstance(error_output, bytes):
-                                    try: error_output = error_output.decode()
-                                    except: pass # Keep as bytes if decode fails
-                                error_msg += f"\\nOutput:\\n{error_output}"
+                                    try:
+                                        error_output = error_output.decode()
+                                    except Exception: # Catch specific decode errors if possible, fallback to Exception
+                                        pass # Keep as bytes if decode fails
+                                error_msg += f"\nOutput:\n{error_output}"
 
                         self.logger.error(f"[red]❌ Failed download/processing for {url} after {self.max_retries} attempts: {error_msg}[/red]")
                         return False # Indicate failure for this URL
@@ -521,7 +521,6 @@ class Archiver:
         task_to_url = {task: url for task, url in results_dict.items()}
         podcast_urls = [u for u in urls if any(u.endswith(ext) for ext in ['.xml', '.atom', '.json', '.rss'])]
         podcast_idx = 0
-        video_idx = 0
 
         for i, result in enumerate(results):
             url = ""

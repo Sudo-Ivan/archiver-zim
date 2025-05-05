@@ -13,7 +13,7 @@ from rich.prompt import Confirm, Prompt
 from rich.theme import Theme
 from rich.logging import RichHandler
 
-from .archiver import Archiver
+from .archiver import Archiver, OutputFilter
 
 # Custom theme for rich
 custom_theme = Theme({
@@ -47,7 +47,6 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # Add filter to root logger
-from .archiver import OutputFilter
 logging.getLogger().addFilter(OutputFilter())
 
 def handle_error(error: Exception, exit_code: int = 1) -> None:
@@ -66,7 +65,7 @@ def print_header() -> None:
     ))
 
 @click.group()
-@click.version_option(version="0.3.3", prog_name="Archiver ZIM")
+@click.version_option(version="0.3.5", prog_name="Archiver ZIM")
 def cli():
     """Archiver ZIM CLI."""
     print_header()
