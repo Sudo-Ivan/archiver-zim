@@ -18,7 +18,7 @@ COPY pyproject.toml poetry.lock ./
 
 RUN poetry install --no-root --no-interaction
 
-COPY archiver /app/archiver/
+COPY archiver_zim /app/archiver/
 
 ENV PYTHONUNBUFFERED=1
 
