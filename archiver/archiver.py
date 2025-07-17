@@ -209,9 +209,7 @@ class Archiver:
             if not yt_dlp_path:
                 raise RuntimeError("yt-dlp is not installed or not in PATH")
 
-            result = subprocess.run([yt_dlp_path, "--version"], capture_output=True, text=True, check=False)
-            if result.returncode != 0:
-                raise RuntimeError("yt-dlp is not properly installed")
+            result = subprocess.run([yt_dlp_path, "--version"], capture_output=True, text=True, check=True)
             self.logger.info(f"Using yt-dlp version: {result.stdout.strip()}")
         except Exception as e:
             raise RuntimeError(f"Failed to check yt-dlp installation: {e}")
@@ -243,12 +241,12 @@ class Archiver:
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
         ]
-        return random.choice(user_agents)
+        return random.choice(user_agents) # noqa: S311
 
     @staticmethod
     def _add_random_delay():
         """Add a random delay to avoid rate limiting."""
-        delay = random.uniform(1, 3)
+        delay = random.uniform(1, 3) # noqa: S311
         time.sleep(delay)
 
     async def _download_video_async(self, url: str, date: Optional[str] = None, title_filter: Optional[str] = None) -> bool:
@@ -479,7 +477,8 @@ class Archiver:
                                 if isinstance(error_output, bytes):
                                     try:
                                         error_output = error_output.decode()
-                                    except Exception: # Catch specific decode errors if possible, fallback to Exception
+                                    except Exception as decode_err: # Catch specific decode errors if possible, fallback to Exception
+                                        self.logger.warning(f"Could not decode error output: {decode_err}") # Log the decoding error
                                         pass # Keep as bytes if decode fails
                                 error_msg += f"\nOutput:\n{error_output}"
 
