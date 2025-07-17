@@ -222,7 +222,9 @@ def manage(config: Optional[str], watch_dir: Optional[str]):
                 "[info]Enter watch directory[/info]",
                 default=default_watch,
             )
-            if not Confirm.ask(f"Create directory {watch_dir} if it doesn't exist?"):
+            if not Confirm.ask(
+                f"Create directory {watch_dir} if it doesn't exist?"
+            ):  # This is not a logging call, so it should not be changed.
                 handle_error(ValueError("Watch directory is required"))
 
         console.print("\n[info]Starting manager in continuous mode...[/info]")

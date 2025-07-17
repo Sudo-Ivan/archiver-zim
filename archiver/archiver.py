@@ -235,7 +235,7 @@ class Archiver:
             result = subprocess.run(
                 [yt_dlp_path, "--version"], capture_output=True, text=True, check=True
             )
-            self.logger.info(f"Using yt-dlp version: {result.stdout.strip()}")
+            self.logger.info("Using yt-dlp version: %s", result.stdout.strip())
         except Exception as e:
             raise RuntimeError(f"Failed to check yt-dlp installation: {e}")
 
@@ -295,7 +295,7 @@ class Archiver:
 
         """
         if self.dry_run:
-            self.logger.info(f"[DRY RUN] Would download from {url}")
+            self.logger.info("[DRY RUN] Would download from %s", url)
             return True
 
         async with self.download_semaphore:
@@ -462,7 +462,8 @@ class Archiver:
                                     # Log info messages sparingly (unchanged)
                                     elif "[info] Downloading playlist:" in line_str:
                                         self.logger.info(
-                                            f"[yellow]📋 {line_str.split('[info]')[1].strip()}[/yellow]"
+                                            "[yellow]📋 %s[/yellow]",
+                                            line_str.split("[info]")[1].strip(),
                                         )
                                         progress.update(
                                             task,
@@ -504,7 +505,8 @@ class Archiver:
                                             and not filter_rejection_logged
                                         ):
                                             self.logger.info(
-                                                f"[yellow]ℹ️ Item rejected by filter: {line_str.split('ERROR:')[1].strip()}[/yellow]"
+                                                "[yellow]ℹ️ Item rejected by filter: %s[/yellow]",
+                                                line_str.split("ERROR:")[1].strip(),
                                             )
                                             filter_rejection_logged = True  # Log only the first one to avoid spam
                                         # Handle specific errors (unchanged)
@@ -531,11 +533,12 @@ class Archiver:
                                         # Log general errors
                                         else:
                                             self.logger.error(
-                                                f"[red]❌ {line_str.split('ERROR:')[1].strip()}[/red]"
+                                                "[red]❌ %s[/red]",
+                                                line_str.split("ERROR:")[1].strip(),
                                             )
                                     elif not line_str.startswith("[debug]"):
                                         self.logger.warning(
-                                            f"[yellow]⚠️ {line_str}[/yellow]"
+                                            "[yellow]⚠️ %s[/yellow]", line_str
                                         )
 
                             except asyncio.TimeoutError:
@@ -548,7 +551,7 @@ class Archiver:
                                 raise TimeoutError("yt-dlp operation timed out")
                             except Exception as e:
                                 self.logger.error(
-                                    f"[red]Error reading process output: {e}[/red]"
+                                    "[red]Error reading process output: %s[/red]", e
                                 )
                                 if process and process.returncode is None:
                                     process.terminate()
@@ -606,7 +609,8 @@ class Archiver:
                     elif process.returncode == 101:
                         # Exit code 101 specifically means all items were filtered out
                         self.logger.info(
-                            f"[yellow]ℹ️ All items from {url} were filtered out by specified filters (title, date, etc.).[/yellow]"
+                            "[yellow]ℹ️ All items from %s were filtered out by specified filters (title, date, etc.).[/yellow]",
+                            url,
                         )
                         return True  # Not a failure state for the archiver itself
 
@@ -617,7 +621,9 @@ class Archiver:
                             else "\\n".join(output_lines[-10:])
                         )
                         self.logger.error(
-                            f"[red]yt-dlp exited with code {process.returncode} for {url}[/red]"
+                            "[red]yt-dlp exited with code %s for %s[/red]",
+                            process.returncode,
+                            url,
                         )
                         raise subprocess.CalledProcessError(
                             process.returncode, cmd, error_msg
@@ -641,13 +647,17 @@ class Archiver:
                                         error_output = error_output.decode()
                                     except Exception as decode_err:  # Catch specific decode errors if possible, fallback to Exception
                                         self.logger.warning(
-                                            f"Could not decode error output: {decode_err}"
+                                            "Could not decode error output: %s",
+                                            decode_err,
                                         )  # Log the decoding error
                                         pass  # Keep as bytes if decode fails
                                 error_msg += f"\nOutput:\n{error_output}"
 
                         self.logger.error(
-                            f"[red]❌ Failed download/processing for {url} after {self.max_retries} attempts: {error_msg}[/red]"
+                            "[red]❌ Failed download/processing for %s after %s attempts: %s[/red]",
+                            url,
+                            self.max_retries,
+                            error_msg,
                         )
                         return False  # Indicate failure for this URL
 
@@ -664,7 +674,8 @@ class Archiver:
 
             # If loop finishes after max_retries without success
             self.logger.error(
-                f"[red]❌ Failed download/processing for {url} after exhausting retries.[/red]"
+                "[red]❌ Failed download/processing for %s after exhausting retries.[/red]",
+                url,
             )
             return False
 
@@ -730,7 +741,9 @@ class Archiver:
 
             if isinstance(result, Exception):
                 self.logger.error(
-                    f"[red]❌ Unhandled exception during processing {url}: {result}[/red]"
+                    "[red]❌ Unhandled exception during processing %s: %s[/red]",
+                    url,
+                    result,
                 )
                 final_results[url] = False
             elif is_podcast:
@@ -861,7 +874,7 @@ class Archiver:
 
         """
         if self.dry_run:
-            self.logger.info(f"[DRY RUN] Would create ZIM archive with title: {title}")
+            self.logger.info("[DRY RUN] Would create ZIM archive with title: %s", title)
             return True
 
         try:
@@ -1135,7 +1148,7 @@ class Archiver:
 
                             except Exception as e:
                                 self.logger.error(
-                                    f"Error processing media {media_file.name}: {e}"
+                                    "Error processing media %s: %s", media_file.name, e
                                 )
                                 continue
 
@@ -1465,11 +1478,11 @@ class Archiver:
                 )
                 creator.add_item(index_item)
 
-            log.info(f"Created ZIM archive at {zim_path}")
+            log.info("Created ZIM archive at %s", zim_path)
             return True
 
         except Exception as e:
-            log.error(f"Failed to create ZIM archive: {e}")
+            log.error("Failed to create ZIM archive: %s", e)
             return False
 
     def cleanup(self) -> None:
@@ -1485,17 +1498,17 @@ class Archiver:
                 for file in self.media_dir.glob("*"):
                     try:
                         file.unlink()
-                        log.info(f"Deleted media file: {file.name}")
+                        log.info("Deleted media file: %s", file.name)
                     except Exception as e:  # noqa: PERF203
-                        log.warning(f"Could not delete file {file.name}: {e}")
+                        log.warning("Could not delete file %s: %s", file.name, e)
 
             if self.metadata_dir.exists():
                 for file in self.metadata_dir.glob("*"):
                     try:
                         file.unlink()
-                        log.info(f"Deleted metadata file: {file.name}")
+                        log.info("Deleted metadata file: %s", file.name)
                     except Exception as e:  # noqa: PERF203
-                        log.warning(f"Could not delete file {file.name}: {e}")
+                        log.warning("Could not delete file %s: %s", file.name, e)
 
             try:
                 if self.media_dir.exists():
@@ -1504,33 +1517,37 @@ class Archiver:
                     self.metadata_dir.rmdir()
                 log.info("Cleanup completed successfully")
             except Exception as e:
-                log.warning(f"Could not remove directories: {e}")
+                log.warning("Could not remove directories: %s", e)
                 if self.media_dir.exists():
                     remaining = list(self.media_dir.glob("*"))
                     if remaining:
                         log.warning(
-                            f"Remaining files in media directory: {[f.name for f in remaining]}"
+                            "Remaining files in media directory: %s",
+                            [f.name for f in remaining],
                         )
                 if self.metadata_dir.exists():
                     remaining = list(self.metadata_dir.glob("*"))
                     if remaining:
                         log.warning(
-                            f"Remaining files in metadata directory: {[f.name for f in remaining]}"
+                            "Remaining files in metadata directory: %s",
+                            [f.name for f in remaining],
                         )
 
         except Exception as e:
-            log.error(f"Error during cleanup: {e}")
+            log.error("Error during cleanup: %s", e)
             try:
                 if self.media_dir.exists():
                     log.error(
-                        f"Files still in media directory: {[f.name for f in self.media_dir.glob('*')]}"
+                        "Files still in media directory: %s",
+                        [f.name for f in self.media_dir.glob("*")],
                     )
                 if self.metadata_dir.exists():
                     log.error(
-                        f"Files still in metadata directory: {[f.name for f in self.metadata_dir.glob('*')]}"
+                        "Files still in metadata directory: %s",
+                        [f.name for f in self.metadata_dir.glob("*")],
                     )
             except Exception as e:
-                log.error(f"Failed to list remaining files: {e}")
+                log.error("Failed to list remaining files: %s", e)
 
 
 @click.group()
@@ -1617,7 +1634,7 @@ def archive(
         for url, result in results.items():
             if not result:
                 success = False
-                log.error(f"Failed to download: {url}")
+                log.error("Failed to download: %s", url)
 
         if not success:
             log.warning("Some downloads failed, but continuing with ZIM creation...")

@@ -152,11 +152,13 @@ class ArchiveManager:
                     hours=archive_config["update_interval"]
                 ):
                     self.logger.info(
-                        f"[yellow]Skipping {archive_id} - Last update was {time_since_update.total_seconds() / 3600:.1f} hours ago[/yellow]"
+                        "[yellow]Skipping %s - Last update was %.1f hours ago[/yellow]",
+                        archive_id,
+                        time_since_update.total_seconds() / 3600,
                     )
                     return
 
-            self.logger.info(f"[green]Processing archive: {archive_id}[/green]")
+            self.logger.info("[green]Processing archive: %s[/green]", archive_id)
 
             # Create output directory
             output_dir = Path(f"archives/{archive_id}")
@@ -181,15 +183,15 @@ class ArchiveManager:
                         url, title_filter=archive_config.get("title_filter")
                     )
                 except Exception as e:  # noqa: PERF203
-                    self.logger.error(f"[red]Error processing URL {url}: {e!s}[/red]")
+                    self.logger.error("[red]Error processing URL %s: %s[/red]", url, e)
 
             # Update last update time
             self.last_updates[archive_id] = datetime.now()
-            self.logger.info(f"[green]Completed archive: {archive_id}[/green]")
+            self.logger.info("[green]Completed archive: %s[/green]", archive_id)
 
         except Exception as e:
             self.logger.error(
-                f"[red]Error processing archive {archive_id}: {e!s}[/red]"
+                "[red]Error processing archive %s: %s[/red]", archive_id, e
             )
 
     async def run(self):
@@ -210,7 +212,7 @@ class ArchiveManager:
                 await asyncio.sleep(3600)
 
             except Exception as e:  # noqa: PERF203
-                self.logger.error(f"Error in main loop: {e}")
+                self.logger.error("Error in main loop: %s", e)
                 await asyncio.sleep(300)  # Sleep for 5 minutes on error
 
 
