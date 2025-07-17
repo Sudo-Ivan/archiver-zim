@@ -11,8 +11,12 @@ WORKDIR /app
 RUN apk add --no-cache \
     ffmpeg
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install poetry
+ENV PATH="/root/.poetry/bin:$PATH"
+
+COPY pyproject.toml poetry.lock ./
+
+RUN poetry install --no-root --no-interaction
 
 COPY archiver /app/archiver/
 
