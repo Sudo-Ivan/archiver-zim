@@ -16,7 +16,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import click
 from libzim.writer import Creator, FileProvider, Hint, Item, StringProvider
@@ -37,46 +37,46 @@ class OutputFilter(logging.Filter):
 
     def filter(self, record):
         msg = record.getMessage()
-        return not any([
-            # Debug messages
-            msg.startswith('[debug]'),
-            msg.startswith('Command-line config:'),
-            msg.startswith('Encodings:'),
+        return not any(
+            [
+                # Debug messages
+                msg.startswith("[debug]"),
+                msg.startswith("Command-line config:"),
+                msg.startswith("Encodings:"),
+                # File paths and line numbers
+                'File "' in msg and "line" in msg,
+                "raise " in msg,
+                "~~~~~~~~~~~~~~~~~~~~~" in msg,
+                # Internal yt-dlp messages
+                "ie_result = self._real_extract" in msg,
+                "self.raise_no_formats" in msg,
+                "raise ExtractorError" in msg,
+                # Redundant download status
+                "Downloading webpage" in msg,
+                "Downloading tv client config" in msg,
+                "Downloading tv player API JSON" in msg,
+                "Downloading ios player API JSON" in msg,
+                "Extracting URL:" in msg,
+                "Writing playlist metadata" in msg,
+                "Writing playlist description" in msg,
+                "Deleting existing file" in msg,
+                "Downloading playlist thumbnail" in msg,
+                "Writing playlist thumbnail" in msg,
+                "Playlist " in msg and "Downloading" in msg and "items of" in msg,
+                # Additional debug patterns
+                "Downloading " in msg and "API JSON" in msg,
+                "Redownloading playlist API JSON" in msg,
+                "page 1: Downloading API JSON" in msg,
+                "ios client https formats require a GVS PO Token" in msg,
+            ]
+        )
 
-            # File paths and line numbers
-            'File "' in msg and 'line' in msg,
-            'raise ' in msg,
-            '~~~~~~~~~~~~~~~~~~~~~' in msg,
-
-            # Internal yt-dlp messages
-            'ie_result = self._real_extract' in msg,
-            'self.raise_no_formats' in msg,
-            'raise ExtractorError' in msg,
-
-            # Redundant download status
-            'Downloading webpage' in msg,
-            'Downloading tv client config' in msg,
-            'Downloading tv player API JSON' in msg,
-            'Downloading ios player API JSON' in msg,
-            'Extracting URL:' in msg,
-            'Writing playlist metadata' in msg,
-            'Writing playlist description' in msg,
-            'Deleting existing file' in msg,
-            'Downloading playlist thumbnail' in msg,
-            'Writing playlist thumbnail' in msg,
-            'Playlist ' in msg and 'Downloading' in msg and 'items of' in msg,
-
-            # Additional debug patterns
-            'Downloading ' in msg and 'API JSON' in msg,
-            'Redownloading playlist API JSON' in msg,
-            'page 1: Downloading API JSON' in msg,
-            'ios client https formats require a GVS PO Token' in msg,
-        ])
 
 class YouTubeAuthError(Exception):
     """Custom exception for YouTube authentication errors."""
 
     pass
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -90,6 +90,7 @@ console = Console()
 # Add filter to root logger
 logging.getLogger().addFilter(OutputFilter())
 
+
 def handle_youtube_auth_error(error_msg: str) -> None:
     """Handle YouTube authentication errors with a user-friendly message.
 
@@ -97,7 +98,9 @@ def handle_youtube_auth_error(error_msg: str) -> None:
         error_msg: The error message from yt-dlp
 
     """
-    log.error("[red]❌ YouTube authentication required. Please use one of these options:[/red]")
+    log.error(
+        "[red]❌ YouTube authentication required. Please use one of these options:[/red]"
+    )
     log.error("[yellow]1. Use --cookies-from-browser option (recommended):[/yellow]")
     log.error("   archiver-zim archive URL --cookies-from-browser firefox")
     log.error("   archiver-zim archive URL --cookies-from-browser chrome")
@@ -109,9 +112,14 @@ def handle_youtube_auth_error(error_msg: str) -> None:
     log.error("\n[yellow]2. Use --cookies option with a cookies file:[/yellow]")
     log.error("   archiver-zim archive URL --cookies /path/to/cookies.txt")
     log.error("\n[dim]For more details, see:[/dim]")
-    log.error("[blue]https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp[/blue]")
-    log.error("\n[yellow]Note:[/yellow] Make sure you are logged into YouTube in your browser before using --cookies-from-browser")
+    log.error(
+        "[blue]https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp[/blue]"
+    )
+    log.error(
+        "\n[yellow]Note:[/yellow] Make sure you are logged into YouTube in your browser before using --cookies-from-browser"
+    )
     raise YouTubeAuthError("YouTube authentication required")
+
 
 def handle_playlist_error(error_msg: str) -> None:
     """Handle playlist download errors with a user-friendly message.
@@ -123,13 +131,18 @@ def handle_playlist_error(error_msg: str) -> None:
     log.error("[red]❌ Playlist download failed. Please check:[/red]")
     log.error("[yellow]1. The playlist is public and accessible[/yellow]")
     log.error("[yellow]2. You have proper authentication if required[/yellow]")
-    log.error("[yellow]3. Try downloading with a lower concurrent download limit[/yellow]")
+    log.error(
+        "[yellow]3. Try downloading with a lower concurrent download limit[/yellow]"
+    )
     log.error("[yellow]4. Try downloading in smaller batches[/yellow]")
+
 
 class MediaItem(Item):
     """Custom Item class for media content."""
 
-    def __init__(self, title: str, path: str, content: str = "", fpath: Optional[str] = None):
+    def __init__(
+        self, title: str, path: str, content: str = "", fpath: Optional[str] = None
+    ):
         """Initialize a MediaItem.
 
         Args:
@@ -169,12 +182,22 @@ class MediaItem(Item):
         """Return hints for the media item."""
         return {Hint.FRONT_ARTICLE: True}
 
+
 class Archiver:
     """Main class for media archiving functionality."""
 
-    def __init__(self, output_dir: str, quality: str = "best", retry_count: int = 3,
-                 retry_delay: int = 5, max_retries: int = 10, max_concurrent_downloads: int = 3,
-                 dry_run: bool = False, cookies: Optional[str] = None, cookies_from_browser: Optional[str] = None):
+    def __init__(
+        self,
+        output_dir: str,
+        quality: str = "best",
+        retry_count: int = 3,
+        retry_delay: int = 5,
+        max_retries: int = 10,
+        max_concurrent_downloads: int = 3,
+        dry_run: bool = False,
+        cookies: Optional[str] = None,
+        cookies_from_browser: Optional[str] = None,
+    ):
         """Initialize the Archiver.
 
         Args:
@@ -198,7 +221,7 @@ class Archiver:
         self.max_retries = max_retries
         self.max_concurrent_downloads = max_concurrent_downloads
         self.download_semaphore = asyncio.Semaphore(max_concurrent_downloads)
-        self.download_progress: Dict[str, float] = {}
+        self.download_progress: dict[str, float] = {}
         self.dry_run = dry_run
         self.cookies = cookies
         self.cookies_from_browser = cookies_from_browser
@@ -209,7 +232,9 @@ class Archiver:
             if not yt_dlp_path:
                 raise RuntimeError("yt-dlp is not installed or not in PATH")
 
-            result = subprocess.run([yt_dlp_path, "--version"], capture_output=True, text=True, check=True)
+            result = subprocess.run(
+                [yt_dlp_path, "--version"], capture_output=True, text=True, check=True
+            )
             self.logger.info(f"Using yt-dlp version: {result.stdout.strip()}")
         except Exception as e:
             raise RuntimeError(f"Failed to check yt-dlp installation: {e}")
@@ -218,7 +243,7 @@ class Archiver:
             self.media_dir.mkdir(parents=True, exist_ok=True)
             self.metadata_dir.mkdir(parents=True, exist_ok=True)
 
-    def get_archive_info(self) -> Dict[str, Any]:
+    def get_archive_info(self) -> dict[str, Any]:
         """Get information about the current archive state.
 
         Returns:
@@ -227,9 +252,15 @@ class Archiver:
         """
         return {
             "output_dir": str(self.output_dir),
-            "media_count": len(list(self.media_dir.glob("*"))) if self.media_dir.exists() else 0,
-            "metadata_count": len(list(self.metadata_dir.glob("*"))) if self.metadata_dir.exists() else 0,
-            "last_update": datetime.now().isoformat() if self.media_dir.exists() else None,
+            "media_count": len(list(self.media_dir.glob("*")))
+            if self.media_dir.exists()
+            else 0,
+            "metadata_count": len(list(self.metadata_dir.glob("*")))
+            if self.metadata_dir.exists()
+            else 0,
+            "last_update": datetime.now().isoformat()
+            if self.media_dir.exists()
+            else None,
         }
 
     @staticmethod
@@ -241,15 +272,17 @@ class Archiver:
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
         ]
-        return random.choice(user_agents) # noqa: S311
+        return random.choice(user_agents)  # noqa: S311
 
     @staticmethod
     def _add_random_delay():
         """Add a random delay to avoid rate limiting."""
-        delay = random.uniform(1, 3) # noqa: S311
+        delay = random.uniform(1, 3)  # noqa: S311
         time.sleep(delay)
 
-    async def _download_video_async(self, url: str, date: Optional[str] = None, title_filter: Optional[str] = None) -> bool:
+    async def _download_video_async(
+        self, url: str, date: Optional[str] = None, title_filter: Optional[str] = None
+    ) -> bool:
         """Asynchronously download a video with retry logic.
 
         Args:
@@ -267,7 +300,7 @@ class Archiver:
 
         async with self.download_semaphore:
             retries = 0
-            download_occurred = False # Flag to track if any download started
+            download_occurred = False  # Flag to track if any download started
 
             while retries < self.max_retries:
                 try:
@@ -276,12 +309,18 @@ class Archiver:
                         "--write-description",
                         "--write-info-json",
                         "--write-thumbnail",
-                        "--user-agent", self._get_random_user_agent(),
-                        "--socket-timeout", "60",
-                        "--retries", str(self.retry_count),
-                        "--fragment-retries", str(self.retry_count),
-                        "--file-access-retries", str(self.retry_count),
-                        "--extractor-retries", str(self.retry_count),
+                        "--user-agent",
+                        self._get_random_user_agent(),
+                        "--socket-timeout",
+                        "60",
+                        "--retries",
+                        str(self.retry_count),
+                        "--fragment-retries",
+                        str(self.retry_count),
+                        "--file-access-retries",
+                        str(self.retry_count),
+                        "--extractor-retries",
+                        str(self.retry_count),
                         "--ignore-errors",
                         "--no-warnings",
                         "--progress",
@@ -289,24 +328,37 @@ class Archiver:
                         "--write-sub",
                         "--write-auto-sub",
                         "--embed-chapters",
-                        "--max-filesize", "2G",
-                        "--retry-sleep", "5",
-                        "-o", str(self.media_dir / "%(id)s.%(ext)s"),
-                        "--merge-output-format", "mp4",
+                        "--max-filesize",
+                        "2G",
+                        "--retry-sleep",
+                        "5",
+                        "-o",
+                        str(self.media_dir / "%(id)s.%(ext)s"),
+                        "--merge-output-format",
+                        "mp4",
                         "--verbose",
                         "--yes-playlist",
                         "--break-on-existing",
-                        "--concurrent-fragments", "1",
-                        "--extractor-args", "youtube:formats=missing_pot",
+                        "--concurrent-fragments",
+                        "1",
+                        "--extractor-args",
+                        "youtube:formats=missing_pot",
                     ]
 
                     if self.cookies:
                         cmd.extend(["--cookies", self.cookies])
                     elif self.cookies_from_browser:
-                        cmd.extend(["--cookies-from-browser", self.cookies_from_browser])
+                        cmd.extend(
+                            ["--cookies-from-browser", self.cookies_from_browser]
+                        )
 
                     if self.quality != "best":
-                        cmd.extend(["-f", f"bestvideo[height<={self.quality[:-1]}]+bestaudio/best[height<={self.quality[:-1]}]"])
+                        cmd.extend(
+                            [
+                                "-f",
+                                f"bestvideo[height<={self.quality[:-1]}]+bestaudio/best[height<={self.quality[:-1]}]",
+                            ]
+                        )
 
                     if date:
                         cmd.extend(["--date", date])
@@ -345,8 +397,12 @@ class Archiver:
 
                         while True:
                             try:
-                                stdout_line = await asyncio.wait_for(process.stdout.readline(), timeout=300)
-                                stderr_line = await asyncio.wait_for(process.stderr.readline(), timeout=300)
+                                stdout_line = await asyncio.wait_for(
+                                    process.stdout.readline(), timeout=300
+                                )
+                                stderr_line = await asyncio.wait_for(
+                                    process.stderr.readline(), timeout=300
+                                )
 
                                 if not stdout_line and not stderr_line:
                                     break
@@ -356,79 +412,147 @@ class Archiver:
                                     output_lines.append(line_str)
 
                                     if "[download] Destination:" in line_str:
-                                        download_occurred = True # Set flag
-                                        current_file = line_str.split("Destination:")[1].strip()
-                                        progress.update(task, description=f"Downloading {Path(current_file).name}", total=100, completed=0)
+                                        download_occurred = True  # Set flag
+                                        current_file = line_str.split("Destination:")[
+                                            1
+                                        ].strip()
+                                        progress.update(
+                                            task,
+                                            description=f"Downloading {Path(current_file).name}",
+                                            total=100,
+                                            completed=0,
+                                        )
                                     elif "[download]" in line_str and "%" in line_str:
                                         # Progress update logic... (unchanged)
                                         try:
                                             if "of" in line_str:
                                                 parts = line_str.split()
-                                                percent = float(parts[1].replace('%', ''))
+                                                percent = float(
+                                                    parts[1].replace("%", "")
+                                                )
                                                 current_progress = percent
                                             else:
-                                                percent = float(line_str.split('%')[0].split()[-1])
+                                                percent = float(
+                                                    line_str.split("%")[0].split()[-1]
+                                                )
                                                 current_progress = percent
-                                            progress.update(task, completed=current_progress)
+                                            progress.update(
+                                                task, completed=current_progress
+                                            )
                                         except (ValueError, IndexError):
                                             pass
-                                    elif "[download]" in line_str and "has already been downloaded" in line_str:
+                                    elif (
+                                        "[download]" in line_str
+                                        and "has already been downloaded" in line_str
+                                    ):
                                         # Already downloaded logic... (unchanged)
-                                        current_file = line_str.split("download]")[1].split("has")[0].strip()
-                                        progress.update(task, completed=100, description=f"Skipped {Path(current_file).name} (exists)")
-                                        progress.reset(task, description="Processing...")
+                                        current_file = (
+                                            line_str.split("download]")[1]
+                                            .split("has")[0]
+                                            .strip()
+                                        )
+                                        progress.update(
+                                            task,
+                                            completed=100,
+                                            description=f"Skipped {Path(current_file).name} (exists)",
+                                        )
+                                        progress.reset(
+                                            task, description="Processing..."
+                                        )
                                     # Log info messages sparingly (unchanged)
                                     elif "[info] Downloading playlist:" in line_str:
-                                         self.logger.info(f"[yellow]📋 {line_str.split('[info]')[1].strip()}[/yellow]")
-                                         progress.update(task, description="Fetching playlist items...")
-                                    elif "[info] Downloading" in line_str and " items " in line_str:
-                                         self.logger.info(f"[cyan]📥 {line_str.split('[info]')[1].strip()}[/cyan]")
+                                        self.logger.info(
+                                            f"[yellow]📋 {line_str.split('[info]')[1].strip()}[/yellow]"
+                                        )
+                                        progress.update(
+                                            task,
+                                            description="Fetching playlist items...",
+                                        )
+                                    elif (
+                                        "[info] Downloading" in line_str
+                                        and " items " in line_str
+                                    ):
+                                        self.logger.info(
+                                            f"[cyan]📥 {line_str.split('[info]')[1].strip()}[/cyan]"
+                                        )
                                     elif "[info] Downloading item " in line_str:
-                                         item_desc = line_str.split("[info]")[1].strip()
-                                         progress.update(task, description=item_desc, total=None, completed=0)
-                                    elif "[yt-dlp]" in line_str and "Downloading" in line_str and "webpage" in line_str:
-                                         progress.update(task, description="Fetching page info...")
-
+                                        item_desc = line_str.split("[info]")[1].strip()
+                                        progress.update(
+                                            task,
+                                            description=item_desc,
+                                            total=None,
+                                            completed=0,
+                                        )
+                                    elif (
+                                        "[yt-dlp]" in line_str
+                                        and "Downloading" in line_str
+                                        and "webpage" in line_str
+                                    ):
+                                        progress.update(
+                                            task, description="Fetching page info..."
+                                        )
 
                                 if stderr_line:
                                     line_str = stderr_line.decode().strip()
                                     error_lines.append(line_str)
                                     # Log errors and warnings (unchanged)
                                     if "ERROR:" in line_str:
-                                         # Check for filter rejection message
-                                         if "Did not match filter" in line_str and not filter_rejection_logged:
-                                             self.logger.info(f"[yellow]ℹ️ Item rejected by filter: {line_str.split('ERROR:')[1].strip()}[/yellow]")
-                                             filter_rejection_logged = True # Log only the first one to avoid spam
-                                         # Handle specific errors (unchanged)
-                                         elif any(x in line_str.lower() for x in [
-                                             "sign in to confirm you're not a bot", "authentication required",
-                                             "login required", "private video", "video unavailable",
-                                             "this video is private", "this video is unavailable",
-                                             "this playlist is private", "this playlist is unavailable",
-                                         ]):
-                                             handle_youtube_auth_error(line_str)
-                                         elif "playlist" in url.lower() and any(x in line_str.lower() for x in ["failed", "error", "not found"]):
-                                             handle_playlist_error(line_str)
-                                         # Log general errors
-                                         else:
-                                             self.logger.error(f"[red]❌ {line_str.split('ERROR:')[1].strip()}[/red]")
-                                    elif not line_str.startswith('[debug]'):
-                                         self.logger.warning(f"[yellow]⚠️ {line_str}[/yellow]")
-
+                                        # Check for filter rejection message
+                                        if (
+                                            "Did not match filter" in line_str
+                                            and not filter_rejection_logged
+                                        ):
+                                            self.logger.info(
+                                                f"[yellow]ℹ️ Item rejected by filter: {line_str.split('ERROR:')[1].strip()}[/yellow]"
+                                            )
+                                            filter_rejection_logged = True  # Log only the first one to avoid spam
+                                        # Handle specific errors (unchanged)
+                                        elif any(
+                                            x in line_str.lower()
+                                            for x in [
+                                                "sign in to confirm you're not a bot",
+                                                "authentication required",
+                                                "login required",
+                                                "private video",
+                                                "video unavailable",
+                                                "this video is private",
+                                                "this video is unavailable",
+                                                "this playlist is private",
+                                                "this playlist is unavailable",
+                                            ]
+                                        ):
+                                            handle_youtube_auth_error(line_str)
+                                        elif "playlist" in url.lower() and any(
+                                            x in line_str.lower()
+                                            for x in ["failed", "error", "not found"]
+                                        ):
+                                            handle_playlist_error(line_str)
+                                        # Log general errors
+                                        else:
+                                            self.logger.error(
+                                                f"[red]❌ {line_str.split('ERROR:')[1].strip()}[/red]"
+                                            )
+                                    elif not line_str.startswith("[debug]"):
+                                        self.logger.warning(
+                                            f"[yellow]⚠️ {line_str}[/yellow]"
+                                        )
 
                             except asyncio.TimeoutError:
-                                self.logger.warning("[yellow]⚠️ Process timeout, retrying...[/yellow]")
+                                self.logger.warning(
+                                    "[yellow]⚠️ Process timeout, retrying...[/yellow]"
+                                )
                                 if process and process.returncode is None:
                                     process.terminate()
                                     await process.wait()
                                 raise TimeoutError("yt-dlp operation timed out")
                             except Exception as e:
-                                self.logger.error(f"[red]Error reading process output: {e}[/red]")
+                                self.logger.error(
+                                    f"[red]Error reading process output: {e}[/red]"
+                                )
                                 if process and process.returncode is None:
                                     process.terminate()
                                     await process.wait()
                                 raise
-
 
                     await process.wait()
 
@@ -437,67 +561,111 @@ class Archiver:
                         if not download_occurred:
                             # yt-dlp succeeded but didn't download anything
                             if title_filter:
-                                self.logger.info(f"[yellow]ℹ️ yt-dlp finished successfully for {url}, but no videos matched the title filter.[/yellow]")
+                                self.logger.info(
+                                    f"[yellow]ℹ️ yt-dlp finished successfully for {url}, but no videos matched the title filter.[/yellow]"
+                                )
                             elif date:
-                                 self.logger.info(f"[yellow]ℹ️ yt-dlp finished successfully for {url}, but no videos matched the date filter.[/yellow]")
+                                self.logger.info(
+                                    f"[yellow]ℹ️ yt-dlp finished successfully for {url}, but no videos matched the date filter.[/yellow]"
+                                )
                             else:
-                                self.logger.info(f"[yellow]ℹ️ yt-dlp finished successfully for {url}, but found no videos to download (maybe empty or already downloaded).[/yellow]")
+                                self.logger.info(
+                                    f"[yellow]ℹ️ yt-dlp finished successfully for {url}, but found no videos to download (maybe empty or already downloaded).[/yellow]"
+                                )
                         # Consider success even if nothing new downloaded
                         # Move metadata if any exists from previous runs or info gathering
-                        for file in self.media_dir.glob(f"{Path(url).name}*") if not Path(url).suffix else self.media_dir.glob(f"{Path(url).stem}*"): # Guess pattern
-                             if file.suffix.lower() in ['.description', '.info.json', '.jpg', '.webp', '.vtt', '.srt']:
-                                 try:
-                                     new_path = self.metadata_dir / file.name
-                                     if not new_path.exists():
-                                         file.rename(new_path)
-                                 except Exception as e:
-                                     self.logger.warning(f"Could not move metadata file {file.name}: {e}")
-                        return True # Process completed without fatal error
+                        for file in (
+                            self.media_dir.glob(f"{Path(url).name}*")
+                            if not Path(url).suffix
+                            else self.media_dir.glob(f"{Path(url).stem}*")
+                        ):  # Guess pattern
+                            if file.suffix.lower() in [
+                                ".description",
+                                ".info.json",
+                                ".jpg",
+                                ".webp",
+                                ".vtt",
+                                ".srt",
+                            ]:
+                                try:
+                                    new_path = self.metadata_dir / file.name
+                                    if not new_path.exists():
+                                        file.rename(new_path)
+                                except Exception as e:
+                                    self.logger.warning(
+                                        f"Could not move metadata file {file.name}: {e}"
+                                    )
+                        return True  # Process completed without fatal error
 
                     elif process.returncode == 101:
                         # Exit code 101 specifically means all items were filtered out
-                        self.logger.info(f"[yellow]ℹ️ All items from {url} were filtered out by specified filters (title, date, etc.).[/yellow]")
-                        return True # Not a failure state for the archiver itself
+                        self.logger.info(
+                            f"[yellow]ℹ️ All items from {url} were filtered out by specified filters (title, date, etc.).[/yellow]"
+                        )
+                        return True  # Not a failure state for the archiver itself
 
-                    else: # Actual error
-                        error_msg = "\\n".join(error_lines) if error_lines else "\\n".join(output_lines[-10:])
-                        self.logger.error(f"[red]yt-dlp exited with code {process.returncode} for {url}[/red]")
-                        raise subprocess.CalledProcessError(process.returncode, cmd, error_msg)
-
+                    else:  # Actual error
+                        error_msg = (
+                            "\\n".join(error_lines)
+                            if error_lines
+                            else "\\n".join(output_lines[-10:])
+                        )
+                        self.logger.error(
+                            f"[red]yt-dlp exited with code {process.returncode} for {url}[/red]"
+                        )
+                        raise subprocess.CalledProcessError(
+                            process.returncode, cmd, error_msg
+                        )
 
                 except YouTubeAuthError:
-                    raise # Propagate auth errors immediately
+                    raise  # Propagate auth errors immediately
                 except (TimeoutError, subprocess.CalledProcessError, Exception) as e:
                     retries += 1
                     if retries >= self.max_retries:
                         error_msg = str(e)
-                        if isinstance(e, subprocess.CalledProcessError): # Check if it has output attribute
-                            error_output = getattr(e, 'output', None) or getattr(e, 'stderr', None)
+                        if isinstance(
+                            e, subprocess.CalledProcessError
+                        ):  # Check if it has output attribute
+                            error_output = getattr(e, "output", None) or getattr(
+                                e, "stderr", None
+                            )
                             if error_output:
                                 if isinstance(error_output, bytes):
                                     try:
                                         error_output = error_output.decode()
-                                    except Exception as decode_err: # Catch specific decode errors if possible, fallback to Exception
-                                        self.logger.warning(f"Could not decode error output: {decode_err}") # Log the decoding error
-                                        pass # Keep as bytes if decode fails
+                                    except Exception as decode_err:  # Catch specific decode errors if possible, fallback to Exception
+                                        self.logger.warning(
+                                            f"Could not decode error output: {decode_err}"
+                                        )  # Log the decoding error
+                                        pass  # Keep as bytes if decode fails
                                 error_msg += f"\nOutput:\n{error_output}"
 
-                        self.logger.error(f"[red]❌ Failed download/processing for {url} after {self.max_retries} attempts: {error_msg}[/red]")
-                        return False # Indicate failure for this URL
+                        self.logger.error(
+                            f"[red]❌ Failed download/processing for {url} after {self.max_retries} attempts: {error_msg}[/red]"
+                        )
+                        return False  # Indicate failure for this URL
 
-                    delay = self.retry_delay * (2 ** retries)
-                    self.logger.warning(f"[yellow]⚠️ Download/processing failed for {url}, retrying in {delay} seconds... (Attempt {retries}/{self.max_retries})[/yellow]")
+                    delay = self.retry_delay * (2**retries)
+                    self.logger.warning(
+                        f"[yellow]⚠️ Download/processing failed for {url}, retrying in {delay} seconds... (Attempt {retries}/{self.max_retries})[/yellow]"
+                    )
                     await asyncio.sleep(delay)
                     self._add_random_delay()
 
             # If loop finishes after max_retries without success
-            self.logger.error(f"[red]❌ Failed download/processing for {url} after exhausting retries.[/red]")
+            self.logger.error(
+                f"[red]❌ Failed download/processing for {url} after exhausting retries.[/red]"
+            )
             return False
 
-
-    async def download_media_async(self, urls: List[str], date: Optional[str] = None,
-                                 date_limit: Optional[int] = None, month_limit: Optional[int] = None,
-                                 title_filter: Optional[str] = None) -> Dict[str, bool]:
+    async def download_media_async(
+        self,
+        urls: list[str],
+        date: Optional[str] = None,
+        date_limit: Optional[int] = None,
+        month_limit: Optional[int] = None,
+        title_filter: Optional[str] = None,
+    ) -> dict[str, bool]:
         """Download multiple media items concurrently.
 
         Args:
@@ -514,14 +682,16 @@ class Archiver:
         tasks = []
         results_dict = {}
         for url in urls:
-            if any(url.endswith(ext) for ext in ['.xml', '.atom', '.json', '.rss']):
+            if any(url.endswith(ext) for ext in [".xml", ".atom", ".json", ".rss"]):
                 tasks.append(self._download_podcast_async(url, date_limit, month_limit))
                 # Associate task with URL for result mapping later if needed, though podcasts are simpler
             else:
                 # Create task and store it with its URL
-                task = asyncio.create_task(self._download_video_async(url, date, title_filter))
+                task = asyncio.create_task(
+                    self._download_video_async(url, date, title_filter)
+                )
                 tasks.append(task)
-                results_dict[task] = url # Map task back to URL
+                results_dict[task] = url  # Map task back to URL
 
         # Gather results
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -529,7 +699,9 @@ class Archiver:
         # Process results and map back to URLs
         final_results = {}
         task_to_url = dict(results_dict.items())
-        podcast_urls = [url for url in urls if url.endswith(('.xml', '.atom', '.json', '.rss'))]
+        podcast_urls = [
+            url for url in urls if url.endswith((".xml", ".atom", ".json", ".rss"))
+        ]
         podcast_idx = 0
 
         for i, result in enumerate(results):
@@ -540,33 +712,39 @@ class Archiver:
             # Attempt to map based on task identity if possible
             original_task = tasks[i]
             if original_task in task_to_url:
-                 url = task_to_url[original_task]
+                url = task_to_url[original_task]
             elif podcast_idx < len(podcast_urls):
                 url = podcast_urls[podcast_idx]
                 is_podcast = True
                 podcast_idx += 1
 
             if isinstance(result, Exception):
-                self.logger.error(f"[red]❌ Unhandled exception during processing {url}: {result}[/red]")
+                self.logger.error(
+                    f"[red]❌ Unhandled exception during processing {url}: {result}[/red]"
+                )
                 final_results[url] = False
             elif is_podcast:
                 # Assume podcast result corresponds to the next podcast URL
-                 final_results[url] = result # result is the boolean status
+                final_results[url] = result  # result is the boolean status
             else:
-                 # Video result
-                 final_results[url] = result # result is the boolean status
-
+                # Video result
+                final_results[url] = result  # result is the boolean status
 
         # Ensure all original URLs have a result (important if some task failed very early)
         for url in urls:
             if url not in final_results:
-                 final_results[url] = False # Assume failure if no result mapped
+                final_results[url] = False  # Assume failure if no result mapped
 
         return final_results
 
-    def download_media(self, urls: List[str], date: Optional[str] = None,
-                      date_limit: Optional[int] = None, month_limit: Optional[int] = None,
-                      title_filter: Optional[str] = None) -> Dict[str, bool]:
+    def download_media(
+        self,
+        urls: list[str],
+        date: Optional[str] = None,
+        date_limit: Optional[int] = None,
+        month_limit: Optional[int] = None,
+        title_filter: Optional[str] = None,
+    ) -> dict[str, bool]:
         """Download multiple media items with progress tracking.
 
         Args:
@@ -580,7 +758,9 @@ class Archiver:
             A dictionary mapping each URL to a boolean indicating download process completion status.
 
         """
-        return asyncio.run(self.download_media_async(urls, date, date_limit, month_limit, title_filter))
+        return asyncio.run(
+            self.download_media_async(urls, date, date_limit, month_limit, title_filter)
+        )
 
     @staticmethod
     def verify_download(file_path: Path) -> bool:
@@ -595,7 +775,7 @@ class Archiver:
         """
         return file_path.exists() and file_path.is_file()
 
-    def _get_media_metadata(self, media_file: Path) -> Dict[str, Any]:
+    def _get_media_metadata(self, media_file: Path) -> dict[str, Any]:
         """Extract media metadata including chapters and subtitles.
 
         Args:
@@ -612,32 +792,37 @@ class Archiver:
             try:
                 with open(json_file) as f:
                     metadata = json.load(f)
-                    if 'title' in metadata:
-                        metadata['title'] = metadata['title'].strip()
-                    if 'description' in metadata:
-                        metadata['description'] = metadata['description'].strip()
-                    if 'upload_date' in metadata:
+                    if "title" in metadata:
+                        metadata["title"] = metadata["title"].strip()
+                    if "description" in metadata:
+                        metadata["description"] = metadata["description"].strip()
+                    if "upload_date" in metadata:
                         try:
-                            date = datetime.strptime(metadata['upload_date'], '%Y%m%d')
-                            metadata['upload_date'] = date.strftime('%B %d, %Y')
+                            date = datetime.strptime(metadata["upload_date"], "%Y%m%d")
+                            metadata["upload_date"] = date.strftime("%B %d, %Y")
                         except ValueError:
                             pass
-                    if 'playlist' in metadata:
-                        metadata['playlist_title'] = metadata['playlist'].get('title', '')
-                        metadata['playlist_index'] = metadata['playlist'].get('index', 0)
-                        metadata['playlist_id'] = metadata['playlist'].get('id', '')
+                    if "playlist" in metadata:
+                        metadata["playlist_title"] = metadata["playlist"].get(
+                            "title", ""
+                        )
+                        metadata["playlist_index"] = metadata["playlist"].get(
+                            "index", 0
+                        )
+                        metadata["playlist_id"] = metadata["playlist"].get("id", "")
             except Exception as e:
                 self.logger.error(f"Error reading metadata for {media_file.name}: {e}")
                 return metadata
 
-        subtitle_files = list(self.metadata_dir.glob(f"{media_file.stem}*.vtt")) + \
-                        list(self.metadata_dir.glob(f"{media_file.stem}*.srt"))
+        subtitle_files = list(self.metadata_dir.glob(f"{media_file.stem}*.vtt")) + list(
+            self.metadata_dir.glob(f"{media_file.stem}*.srt")
+        )
         if subtitle_files:
-            metadata['subtitles'] = [str(f.name) for f in subtitle_files]
+            metadata["subtitles"] = [str(f.name) for f in subtitle_files]
         else:
             self.logger.info(f"No subtitles found for {media_file.name}")
 
-        if 'chapters' not in metadata:
+        if "chapters" not in metadata:
             self.logger.info(f"No chapters found for {media_file.name}")
 
         return metadata
@@ -665,7 +850,7 @@ class Archiver:
                 metadata = {
                     "creator": "Archiver ZIM",
                     "description": description,
-                    "name": title.lower().replace(' ', '_'),
+                    "name": title.lower().replace(" ", "_"),
                     "publisher": "Archiver",
                     "title": title,
                     "language": "eng",
@@ -678,26 +863,32 @@ class Archiver:
                 creator.set_mainpath("index")
 
                 # Only get media files (video and audio)
-                media_files = [f for f in self.media_dir.glob("*.*")
-                             if f.suffix.lower() in ['.mp4', '.webm', '.mkv', '.mp3', '.m4a', '.wav', '.ogg']]
+                media_files = [
+                    f
+                    for f in self.media_dir.glob("*.*")
+                    if f.suffix.lower()
+                    in [".mp4", ".webm", ".mkv", ".mp3", ".m4a", ".wav", ".ogg"]
+                ]
                 playlist_groups = {}
                 standalone_videos = []
 
                 for media_file in media_files:
                     media_metadata = self._get_media_metadata(media_file)
-                    if media_metadata.get('playlist_id'):
-                        playlist_id = media_metadata['playlist_id']
+                    if media_metadata.get("playlist_id"):
+                        playlist_id = media_metadata["playlist_id"]
                         if playlist_id not in playlist_groups:
                             playlist_groups[playlist_id] = {
-                                'title': media_metadata.get('playlist_title', ''),
-                                'videos': [],
+                                "title": media_metadata.get("playlist_title", ""),
+                                "videos": [],
                             }
-                        playlist_groups[playlist_id]['videos'].append((media_file, media_metadata))
+                        playlist_groups[playlist_id]["videos"].append(
+                            (media_file, media_metadata)
+                        )
                     else:
                         standalone_videos.append((media_file, media_metadata))
 
                 for playlist in playlist_groups.values():
-                    playlist['videos'].sort(key=lambda x: x[1].get('playlist_index', 0))
+                    playlist["videos"].sort(key=lambda x: x[1].get("playlist_index", 0))
 
                 with Progress(
                     SpinnerColumn(),
@@ -710,18 +901,26 @@ class Archiver:
                     refresh_per_second=10,
                     expand=True,
                 ) as progress:
-                    task = progress.add_task("Creating ZIM archive...", total=len(media_files))
+                    task = progress.add_task(
+                        "Creating ZIM archive...", total=len(media_files)
+                    )
 
-                    for media_file, media_metadata in standalone_videos + [v for p in playlist_groups.values() for v in p['videos']]:
+                    for media_file, media_metadata in standalone_videos + [
+                        v for p in playlist_groups.values() for v in p["videos"]
+                    ]:
                         with lock:
                             try:
-                                mime_type = "video/mp4" if media_file.suffix == ".mp4" else "audio/mpeg"
+                                mime_type = (
+                                    "video/mp4"
+                                    if media_file.suffix == ".mp4"
+                                    else "audio/mpeg"
+                                )
 
                                 html_content = f"""
                                 <!DOCTYPE html>
                                 <html>
                                 <head>
-                                    <title>{media_metadata.get('title', media_file.stem)}</title>
+                                    <title>{media_metadata.get("title", media_file.stem)}</title>
                                     <meta charset="utf-8">
                                     <style>
                                         body {{
@@ -816,18 +1015,20 @@ class Archiver:
                                 </head>
                                 <body>
                                     <div class="video-info">
-                                        <h1 class="video-title">{media_metadata.get('title', media_file.stem)}</h1>
+                                        <h1 class="video-title">{media_metadata.get("title", media_file.stem)}</h1>
                                         <div class="video-meta">
-                                            {media_metadata.get('upload_date', '')}
+                                            {media_metadata.get("upload_date", "")}
                                         </div>
                                 """
 
-                                if media_metadata.get('playlist_id'):
-                                    playlist = playlist_groups[media_metadata['playlist_id']]
+                                if media_metadata.get("playlist_id"):
+                                    playlist = playlist_groups[
+                                        media_metadata["playlist_id"]
+                                    ]
                                     html_content += f"""
                                         <div class="playlist-info">
-                                            Part of playlist: <a href="playlist_{media_metadata['playlist_id']}">{playlist['title']}</a>
-                                            (Video {media_metadata.get('playlist_index', 0)} of {len(playlist['videos'])})
+                                            Part of playlist: <a href="playlist_{media_metadata["playlist_id"]}">{playlist["title"]}</a>
+                                            (Video {media_metadata.get("playlist_index", 0)} of {len(playlist["videos"])})
                                         </div>
                                     """
 
@@ -836,7 +1037,7 @@ class Archiver:
                                     <div class="media-container">
                                 """
 
-                                if mime_type.startswith('video/'):
+                                if mime_type.startswith("video/"):
                                     html_content += f"""
                                         <video controls>
                                             <source src="{media_file.name}" type="{mime_type}">
@@ -853,22 +1054,24 @@ class Archiver:
 
                                 html_content += "</div>"
 
-                                if 'subtitles' in media_metadata:
-                                    for subtitle in media_metadata['subtitles']:
+                                if "subtitles" in media_metadata:
+                                    for subtitle in media_metadata["subtitles"]:
                                         html_content += f'<track src="{subtitle}" kind="subtitles" label="{subtitle.split(".")[-1].upper()}">\n'
 
-                                if 'chapters' in media_metadata:
-                                    html_content += '<div class="chapters"><h3>Chapters</h3><ul>\n'
-                                    for chapter in media_metadata['chapters']:
-                                        start_time = chapter.get('start_time', 0)
-                                        title = chapter.get('title', 'Untitled')
-                                        html_content += f'<li onclick="document.querySelector(\'video,audio\').currentTime = {start_time}">{title}</li>\n'
-                                    html_content += '</ul></div>\n'
+                                if "chapters" in media_metadata:
+                                    html_content += (
+                                        '<div class="chapters"><h3>Chapters</h3><ul>\n'
+                                    )
+                                    for chapter in media_metadata["chapters"]:
+                                        start_time = chapter.get("start_time", 0)
+                                        title = chapter.get("title", "Untitled")
+                                        html_content += f"<li onclick=\"document.querySelector('video,audio').currentTime = {start_time}\">{title}</li>\n"
+                                    html_content += "</ul></div>\n"
 
-                                if 'description' in media_metadata:
+                                if "description" in media_metadata:
                                     html_content += f"""
                                         <div class="video-info">
-                                            <div class="video-description">{media_metadata['description']}</div>
+                                            <div class="video-description">{media_metadata["description"]}</div>
                                         </div>
                                     """
 
@@ -878,7 +1081,7 @@ class Archiver:
                                 """
 
                                 media_item = MediaItem(
-                                    title=media_metadata.get('title', media_file.stem),
+                                    title=media_metadata.get("title", media_file.stem),
                                     path=f"media/{media_file.stem}",
                                     content=html_content,
                                 )
@@ -892,8 +1095,8 @@ class Archiver:
                                 media_file_item.get_mimetype = lambda: mime_type
                                 creator.add_item(media_file_item)
 
-                                if 'subtitles' in media_metadata:
-                                    for subtitle in media_metadata['subtitles']:
+                                if "subtitles" in media_metadata:
+                                    for subtitle in media_metadata["subtitles"]:
                                         subtitle_path = self.metadata_dir / subtitle
                                         if subtitle_path.exists():
                                             subtitle_item = MediaItem(
@@ -901,11 +1104,17 @@ class Archiver:
                                                 path=f"media/{subtitle}",
                                                 fpath=str(subtitle_path),
                                             )
-                                            subtitle_item.get_mimetype = lambda: "text/vtt" if subtitle.endswith('.vtt') else "text/srt"
+                                            subtitle_item.get_mimetype = (
+                                                lambda: "text/vtt"
+                                                if subtitle.endswith(".vtt")
+                                                else "text/srt"
+                                            )
                                             creator.add_item(subtitle_item)
 
                             except Exception as e:
-                                self.logger.error(f"Error processing media {media_file.name}: {e}")
+                                self.logger.error(
+                                    f"Error processing media {media_file.name}: {e}"
+                                )
                                 continue
 
                             progress.update(task, advance=1)
@@ -915,7 +1124,7 @@ class Archiver:
                     <!DOCTYPE html>
                     <html>
                     <head>
-                        <title>{playlist['title']}</title>
+                        <title>{playlist["title"]}</title>
                         <meta charset="utf-8">
                         <style>
                             body {{
@@ -992,18 +1201,18 @@ class Archiver:
                         </style>
                     </head>
                     <body>
-                        <h1>{playlist['title']}</h1>
+                        <h1>{playlist["title"]}</h1>
                         <div class="playlist-info">
-                            {len(playlist['videos'])} videos in this playlist
+                            {len(playlist["videos"])} videos in this playlist
                         </div>
                         <div class="video-grid">
                     """
 
-                    for media_file, media_metadata in playlist['videos']:
-                        title = media_metadata.get('title', media_file.stem)
-                        date = media_metadata.get('upload_date', '')
-                        thumbnail = media_metadata.get('thumbnail', '')
-                        index = media_metadata.get('playlist_index', 0)
+                    for media_file, media_metadata in playlist["videos"]:
+                        title = media_metadata.get("title", media_file.stem)
+                        date = media_metadata.get("upload_date", "")
+                        thumbnail = media_metadata.get("thumbnail", "")
+                        index = media_metadata.get("playlist_index", 0)
 
                         playlist_content += f"""
                         <div class="video-item">
@@ -1027,7 +1236,7 @@ class Archiver:
                     """
 
                     playlist_item = MediaItem(
-                        title=playlist['title'],
+                        title=playlist["title"],
                         path=f"playlist_{playlist_id}",
                         content=playlist_content,
                     )
@@ -1172,18 +1381,18 @@ class Archiver:
                     """
                     for playlist_id, playlist in playlist_groups.items():
                         # Use the first video's thumbnail as playlist thumbnail
-                        first_video = playlist['videos'][0]
-                        thumbnail = first_video[1].get('thumbnail', '')
+                        first_video = playlist["videos"][0]
+                        thumbnail = first_video[1].get("thumbnail", "")
 
                         index_content += f"""
                             <div class="playlist-card">
                                 <a href="playlist_{playlist_id}">
                                     <div class="playlist-thumbnail">
-                                        <img src="{thumbnail}" alt="{playlist['title']}">
+                                        <img src="{thumbnail}" alt="{playlist["title"]}">
                                     </div>
                                     <div class="playlist-info">
-                                        <div class="playlist-title">{playlist['title']}</div>
-                                        <div class="playlist-count">{len(playlist['videos'])} videos</div>
+                                        <div class="playlist-title">{playlist["title"]}</div>
+                                        <div class="playlist-count">{len(playlist["videos"])} videos</div>
                                     </div>
                                 </a>
                             </div>
@@ -1200,9 +1409,9 @@ class Archiver:
                             <div class="video-grid">
                     """
                     for media_file, media_metadata in standalone_videos:
-                        title = media_metadata.get('title', media_file.stem)
-                        date = media_metadata.get('upload_date', '')
-                        thumbnail = media_metadata.get('thumbnail', '')
+                        title = media_metadata.get("title", media_file.stem)
+                        date = media_metadata.get("upload_date", "")
+                        thumbnail = media_metadata.get("thumbnail", "")
 
                         index_content += f"""
                             <div class="video-item">
@@ -1255,7 +1464,7 @@ class Archiver:
                     try:
                         file.unlink()
                         log.info(f"Deleted media file: {file.name}")
-                    except Exception as e:
+                    except Exception as e:  # noqa: PERF203
                         log.warning(f"Could not delete file {file.name}: {e}")
 
             if self.metadata_dir.exists():
@@ -1263,7 +1472,7 @@ class Archiver:
                     try:
                         file.unlink()
                         log.info(f"Deleted metadata file: {file.name}")
-                    except Exception as e:
+                    except Exception as e:  # noqa: PERF203
                         log.warning(f"Could not delete file {file.name}: {e}")
 
             try:
@@ -1277,52 +1486,105 @@ class Archiver:
                 if self.media_dir.exists():
                     remaining = list(self.media_dir.glob("*"))
                     if remaining:
-                        log.warning(f"Remaining files in media directory: {[f.name for f in remaining]}")
+                        log.warning(
+                            f"Remaining files in media directory: {[f.name for f in remaining]}"
+                        )
                 if self.metadata_dir.exists():
                     remaining = list(self.metadata_dir.glob("*"))
                     if remaining:
-                        log.warning(f"Remaining files in metadata directory: {[f.name for f in remaining]}")
+                        log.warning(
+                            f"Remaining files in metadata directory: {[f.name for f in remaining]}"
+                        )
 
         except Exception as e:
             log.error(f"Error during cleanup: {e}")
             try:
                 if self.media_dir.exists():
-                    log.error(f"Files still in media directory: {[f.name for f in self.media_dir.glob('*')]}")
+                    log.error(
+                        f"Files still in media directory: {[f.name for f in self.media_dir.glob('*')]}"
+                    )
                 if self.metadata_dir.exists():
-                    log.error(f"Files still in metadata directory: {[f.name for f in self.metadata_dir.glob('*')]}")
+                    log.error(
+                        f"Files still in metadata directory: {[f.name for f in self.metadata_dir.glob('*')]}"
+                    )
             except Exception as e:
                 log.error(f"Failed to list remaining files: {e}")
+
 
 @click.group()
 def cli():
     """Archiver ZIM - Download videos and podcasts and create ZIM archives."""
     pass
 
+
 @cli.command()
-@click.argument('urls', nargs=-1, required=True)
-@click.option('--output-dir', '-o', default='./archive', help='Output directory')
-@click.option('--quality', '-q', default='best', help='Video quality (e.g., 720p, 480p)')
-@click.option('--date', '-d', help='Filter by specific date (YYYY-MM-DD)')
-@click.option('--date-limit', '-dl', type=int, help='Download only episodes from the last N days')
-@click.option('--month-limit', '-ml', type=int, help='Download only episodes from the last N months')
-@click.option('--title', '-t', help='Title for the ZIM archive')
-@click.option('--description', '--desc', default='Media archive', help='ZIM archive description')
-@click.option('--retry-count', default=3, help='Number of retries for failed downloads')
-@click.option('--retry-delay', default=5, help='Base delay between retries in seconds')
-@click.option('--max-retries', default=10, help='Maximum number of retries before giving up')
-@click.option('--skip-download', is_flag=True, help='Skip download phase and create ZIM from existing media')
-@click.option('--cleanup', is_flag=True, help='Delete downloaded files after ZIM creation')
-@click.option('--dry-run', is_flag=True, help='Simulate operations without downloading')
-@click.option('--cookies', help='Path to cookies file')
-@click.option('--cookies-from-browser', help='Browser to extract cookies from (e.g., firefox, chrome)')
-def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str],
-           date_limit: Optional[int], month_limit: Optional[int], title: Optional[str],
-           description: str, retry_count: int, retry_delay: int, max_retries: int,
-           skip_download: bool, cleanup: bool, dry_run: bool, cookies: Optional[str],
-           cookies_from_browser: Optional[str]):
+@click.argument("urls", nargs=-1, required=True)
+@click.option("--output-dir", "-o", default="./archive", help="Output directory")
+@click.option(
+    "--quality", "-q", default="best", help="Video quality (e.g., 720p, 480p)"
+)
+@click.option("--date", "-d", help="Filter by specific date (YYYY-MM-DD)")
+@click.option(
+    "--date-limit", "-dl", type=int, help="Download only episodes from the last N days"
+)
+@click.option(
+    "--month-limit",
+    "-ml",
+    type=int,
+    help="Download only episodes from the last N months",
+)
+@click.option("--title", "-t", help="Title for the ZIM archive")
+@click.option(
+    "--description", "--desc", default="Media archive", help="ZIM archive description"
+)
+@click.option("--retry-count", default=3, help="Number of retries for failed downloads")
+@click.option("--retry-delay", default=5, help="Base delay between retries in seconds")
+@click.option(
+    "--max-retries", default=10, help="Maximum number of retries before giving up"
+)
+@click.option(
+    "--skip-download",
+    is_flag=True,
+    help="Skip download phase and create ZIM from existing media",
+)
+@click.option(
+    "--cleanup", is_flag=True, help="Delete downloaded files after ZIM creation"
+)
+@click.option("--dry-run", is_flag=True, help="Simulate operations without downloading")
+@click.option("--cookies", help="Path to cookies file")
+@click.option(
+    "--cookies-from-browser",
+    help="Browser to extract cookies from (e.g., firefox, chrome)",
+)
+def archive(
+    urls: list[str],
+    output_dir: str,
+    quality: str,
+    date: Optional[str],
+    date_limit: Optional[int],
+    month_limit: Optional[int],
+    title: Optional[str],
+    description: str,
+    retry_count: int,
+    retry_delay: int,
+    max_retries: int,
+    skip_download: bool,
+    cleanup: bool,
+    dry_run: bool,
+    cookies: Optional[str],
+    cookies_from_browser: Optional[str],
+):
     """Download media and create a ZIM archive."""
-    archiver = Archiver(output_dir, quality, retry_count, retry_delay, max_retries,
-                       dry_run=dry_run, cookies=cookies, cookies_from_browser=cookies_from_browser)
+    archiver = Archiver(
+        output_dir,
+        quality,
+        retry_count,
+        retry_delay,
+        max_retries,
+        dry_run=dry_run,
+        cookies=cookies,
+        cookies_from_browser=cookies_from_browser,
+    )
 
     if not title:
         title = f"Media_Archive_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -1350,13 +1612,16 @@ def archive(urls: List[str], output_dir: str, quality: str, date: Optional[str],
         log.error("Failed to create archive")
         sys.exit(1)
 
+
 @cli.command()
-@click.option('--config', '-c', default='config.yml', help='Path to configuration file')
+@click.option("--config", "-c", default="config.yml", help="Path to configuration file")
 def manage(config: str):
     """Run the archive manager in continuous mode."""
     from manager import ArchiveManager
+
     manager = ArchiveManager(config)
     asyncio.run(manager.run())
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     cli()
