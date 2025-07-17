@@ -95,18 +95,6 @@ docker compose run --rm archiver archive "https://www.youtube.com/watch?v=VIDEO_
 docker compose logs -f
 ```
 
-### Manual Installation
-
-1. Install the required dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-2. Install yt-dlp (required for video downloads):
-```bash
-pip install yt-dlp
-```
-
 ### Using pip
 
 Install directly from PyPI:
