@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "archiver-zim"
-version = "0.3.6"
+version = "0.4.0"
 description = "A tool to download videos and podcasts from various platforms and create ZIM archives"
 authors = ["Sudo-Ivan"]
 readme = "README.md"
@@ -8,19 +8,17 @@ packages = [{include = "archiver"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.14"
-yt-dlp = "^2025.4.30"
+yt-dlp = "^2025.6.30"
 python-dateutil = "^2.9.0.post0"
-click = "^8.1.8"
+click = "^8.2.1"
 rich = "^14.0.0"
 libzim = "^3.7.0"
 feedparser = "^6.0.11"
-requests = "^2.32.3"
+requests = "^2.32.4"
 pyyaml = "^6.0.2"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.11.8"
-bandit = "^1.8.3"
-interrogate = "^1.7.0"
+ruff = "^0.12.3"
 
 [tool.poetry.scripts]
 archiver-zim = "archiver.cli:main"
