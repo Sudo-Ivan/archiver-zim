@@ -21,7 +21,7 @@ pyyaml = "^6.0.2"
 ruff = "^0.12.3"
 
 [tool.poetry.scripts]
-archiver-zim = "archiver.cli:main"
+archiver-zim = "archiver_zim.cli:main"
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
