@@ -473,7 +473,8 @@ class Archiver:
                                         and " items " in line_str
                                     ):
                                         self.logger.info(
-                                            f"[cyan]📥 {line_str.split('[info]')[1].strip()}[/cyan]"
+                                            "[cyan]📥 %s[/cyan]",
+                                            line_str.split("[info]")[1].strip(),
                                         )
                                     elif "[info] Downloading item " in line_str:
                                         item_desc = line_str.split("[info]")[1].strip()
@@ -562,15 +563,18 @@ class Archiver:
                             # yt-dlp succeeded but didn't download anything
                             if title_filter:
                                 self.logger.info(
-                                    f"[yellow]ℹ️ yt-dlp finished successfully for {url}, but no videos matched the title filter.[/yellow]"
+                                    "[yellow]ℹ️ yt-dlp finished successfully for %s, but no videos matched the title filter.[/yellow]",
+                                    url,
                                 )
                             elif date:
                                 self.logger.info(
-                                    f"[yellow]ℹ️ yt-dlp finished successfully for {url}, but no videos matched the date filter.[/yellow]"
+                                    "[yellow]ℹ️ yt-dlp finished successfully for %s, but no videos matched the date filter.[/yellow]",
+                                    url,
                                 )
                             else:
                                 self.logger.info(
-                                    f"[yellow]ℹ️ yt-dlp finished successfully for {url}, but found no videos to download (maybe empty or already downloaded).[/yellow]"
+                                    "[yellow]ℹ️ yt-dlp finished successfully for %s, but found no videos to download (maybe empty or already downloaded).[/yellow]",
+                                    url,
                                 )
                         # Consider success even if nothing new downloaded
                         # Move metadata if any exists from previous runs or info gathering
@@ -593,7 +597,9 @@ class Archiver:
                                         file.rename(new_path)
                                 except Exception as e:
                                     self.logger.warning(
-                                        f"Could not move metadata file {file.name}: {e}"
+                                        "Could not move metadata file %s: %s",
+                                        file.name,
+                                        e,
                                     )
                         return True  # Process completed without fatal error
 
@@ -647,7 +653,11 @@ class Archiver:
 
                     delay = self.retry_delay * (2**retries)
                     self.logger.warning(
-                        f"[yellow]⚠️ Download/processing failed for {url}, retrying in {delay} seconds... (Attempt {retries}/{self.max_retries})[/yellow]"
+                        "[yellow]⚠️ Download/processing failed for %s, retrying in %s seconds... (Attempt %s/%s)[/yellow]",
+                        url,
+                        delay,
+                        retries,
+                        self.max_retries,
                     )
                     await asyncio.sleep(delay)
                     self._add_random_delay()
@@ -802,7 +812,9 @@ class Archiver:
                             metadata["upload_date"] = date.strftime("%B %d, %Y")
                         except ValueError:
                             pass
-                    if "playlist" in metadata and isinstance(metadata["playlist"], dict):
+                    if "playlist" in metadata and isinstance(
+                        metadata["playlist"], dict
+                    ):
                         metadata["playlist_title"] = metadata["playlist"].get(
                             "title", ""
                         )
@@ -810,10 +822,18 @@ class Archiver:
                             "index", 0
                         )
                         metadata["playlist_id"] = metadata["playlist"].get("id", "")
-                    elif "playlist" in metadata: # Handle cases where 'playlist' might be a string or other non-dict type
-                        self.logger.warning(f"Unexpected type for 'playlist' in metadata for {media_file.name}: {type(metadata['playlist']).__name__}. Skipping playlist metadata.")
+                    elif (
+                        "playlist" in metadata
+                    ):  # Handle cases where 'playlist' might be a string or other non-dict type
+                        self.logger.warning(
+                            "Unexpected type for 'playlist' in metadata for %s: %s. Skipping playlist metadata.",
+                            media_file.name,
+                            type(metadata["playlist"]).__name__,
+                        )
             except Exception as e:
-                self.logger.error(f"Error reading metadata for {media_file.name}: {e}")
+                self.logger.error(
+                    "Error reading metadata for %s: %s", media_file.name, e
+                )
                 return metadata
 
         subtitle_files = list(self.metadata_dir.glob(f"{media_file.stem}*.vtt")) + list(
