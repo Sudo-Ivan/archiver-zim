@@ -802,7 +802,7 @@ class Archiver:
                             metadata["upload_date"] = date.strftime("%B %d, %Y")
                         except ValueError:
                             pass
-                    if "playlist" in metadata:
+                    if "playlist" in metadata and isinstance(metadata["playlist"], dict):
                         metadata["playlist_title"] = metadata["playlist"].get(
                             "title", ""
                         )
@@ -810,6 +810,8 @@ class Archiver:
                             "index", 0
                         )
                         metadata["playlist_id"] = metadata["playlist"].get("id", "")
+                    elif "playlist" in metadata: # Handle cases where 'playlist' might be a string or other non-dict type
+                        self.logger.warning(f"Unexpected type for 'playlist' in metadata for {media_file.name}: {type(metadata['playlist']).__name__}. Skipping playlist metadata.")
             except Exception as e:
                 self.logger.error(f"Error reading metadata for {media_file.name}: {e}")
                 return metadata
