@@ -1114,7 +1114,7 @@ class Archiver:
                                     path=f"media/{media_file.name}",
                                     fpath=str(media_file),
                                 )
-                                media_file_item.get_mimetype = lambda: mime_type
+                                media_file_item.get_mimetype = lambda m=mime_type: m
                                 creator.add_item(media_file_item)
 
                                 if "subtitles" in media_metadata:
@@ -1127,8 +1127,8 @@ class Archiver:
                                                 fpath=str(subtitle_path),
                                             )
                                             subtitle_item.get_mimetype = (
-                                                lambda: "text/vtt"
-                                                if subtitle.endswith(".vtt")
+                                                lambda s=subtitle: "text/vtt"
+                                                if s.endswith(".vtt")
                                                 else "text/srt"
                                             )
                                             creator.add_item(subtitle_item)
