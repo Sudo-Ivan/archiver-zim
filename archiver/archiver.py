@@ -855,10 +855,10 @@ class Archiver:
         if subtitle_files:
             metadata["subtitles"] = [str(f.name) for f in subtitle_files]
         else:
-            self.logger.info(f"No subtitles found for {media_file.name}")
+            self.logger.info("No subtitles found for %s", media_file.name)
 
         if "chapters" not in metadata:
-            self.logger.info(f"No chapters found for {media_file.name}")
+            self.logger.info("No chapters found for %s", media_file.name)
 
         return metadata
 

@@ -183,7 +183,7 @@ def archive(
         for url, result in results.items():
             if not result:
                 success = False
-                log.error(f"Failed to download: {url}")
+                log.error("Failed to download: %s", url)
 
         if not success:
             log.warning("Some downloads failed, but continuing with ZIM creation...")
