@@ -8,7 +8,7 @@ packages = [{include = "archiver_zim"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.14"
-yt-dlp = "^2025.6.30"
+yt-dlp = "^2025.7.21"
 python-dateutil = "^2.9.0.post0"
 click = "^8.2.1"
 rich = "^14.0.0"
