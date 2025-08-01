@@ -3,6 +3,8 @@
 [![Socket Badge](https://socket.dev/api/badge/pypi/package/archiver-zim/0.3.0?artifact_id=tar-gz)](https://socket.dev/pypi/package/archiver-zim/overview/0.3.0/tar-gz)
 [![DeepSource](https://app.deepsource.com/gh/Sudo-Ivan/archiver-zim.svg/?label=active+issues&show_trend=true&token=HQKcgToHNqsWxbY1_gs_Tc7h)](https://app.deepsource.com/gh/Sudo-Ivan/archiver-zim/)
 [![Build and Publish Docker Image](https://github.com/Sudo-Ivan/archiver-zim/actions/workflows/docker-build.yml/badge.svg)](https://github.com/Sudo-Ivan/archiver-zim/actions/workflows/docker-build.yml)
+[![Safety](https://github.com/Sudo-Ivan/archiver-zim/actions/workflows/safety.yml/badge.svg)](https://github.com/Sudo-Ivan/archiver-zim/actions/workflows/safety.yml)
+[![Bearer](https://github.com/Sudo-Ivan/archiver-zim/actions/workflows/bearer.yml/badge.svg)](https://github.com/Sudo-Ivan/archiver-zim/actions/workflows/bearer.yml)
 
 A tool for downloading and archiving videos and podcasts into ZIM files.
 
